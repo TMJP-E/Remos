@@ -1,41 +1,56 @@
 # Remos
-**Remos** es un programa en C el cual permite analizar la terminal donde es ejecutado para reconocer la salida y guardar todos los datos importantes de la misma.
 
-Remos se ejecuta por encima, y despues de ello, el usuario puede utilizar su terminal para realizar ciertas acciones, es principalmente utilizado para almacenar la salida de un servidor en una bitacora, para que, en caso de que algo salga mal, se pueda analizar el problema de manera mas adecuada.
+**Remos** es un programa en C, el cual permite analizar la terminal y reconocer la salida, guardando todos los datos importantes.
+
+Remos se ejecuta por dentro de la terminal, permitiendo al usuario recolectar y analizar las diferentes lineas de salida de cualquier comando o proceso que accione, para posteriormente almacenar la informacion relevante en una bitacora, permitiendo analizar esta salida despues de haber concluido la ejecucion del programa original.
 
 ## Uso
 
-Remos, al ser ejecutado, muestra un menu al usuario, con tres opciones, **Iniciar, Opciones, y Salida.**
+Remos lee la salida de la terminal y busca palabras claves, las cuales indican que lineas son de importancia, y por ende, se almacenan en un archivo de bitacora, se pueden determinar las palabras clave para buscar y el nombre de la bitacora, esto permite que mantener multiples bitacoras con diferentes configuraciones desde el programa.
+
+Al ser ejecutado, muestra el logo del progama, posteriormente, se despliega un menu con tres opciones, **Iniciar, Opciones, y Salida**.
 
 ### Iniciar
 
-Remos consulta el archivo de configuracion y obtiene las palabras clave que debera evaluar mientras la terminal sigue ejecucion, despliega en pantalla este conjunto de palabras, solicita que el usuario ingrese el comando para ejecutar, o la palabra 'regresar', por si desea volver al menu principal, y advierte que sobreescribira el archivo de bitacora anterior, en caso de detectar que existe.
+Si el archivo de configuracion existe, el programa obtiene las palabras clave y el nombre de la bitacora actual, en caso contrario, indica que se requiere un archivo de configuracion, el cual debe ser creado en el menu de **Opciones**.
 
-Si un comando valido es ingresado, ejecutara el comando y terminara la ejecucion del programa despues, sin embargo, para uso dentro de un servidor, esto solo sucederia cuando el usuario detiene la ejecucion o el servidor colapsa inesperadamente.
+Se muestran las palabras clave que el programa buscara y el nombre de la bitacora actual, si detecta que ya existe una bitacora con el mismo nombre, alertara al usuario, indicando que se sobreescribira la bitacora anterior.
 
-Mientras el servidor se ejecuta, Remos lee y analiza cada linea de la salida, buscando las palabras clave definidas por el usuario, si encuentra alguna de ellas, guarda la linea completa dentro de un archivo, y repite el proceso hasta terminar la ejecucion, almacenando cada mensaje importante para el usuario en un archivo.
+Al ingresar la opcion de `continuar` con el teclado, el programa pedira un comando en la terminal para ejecutar y comenzar la lectura, una vez termine la ejecucion del comando, concluye la bitacora, indicando donde fue almacenada y la cantidad de ocurrencias de cada palabra, posteriormente, se regresara al menu principal.
 
-Cuando termine la ejecucion del programa, mostrara donde se guardaron las lineas registradas.
+Si se elige la opcion de `regresar`, despliega el menu principal con las tres opciones por defecto.
+
+Antes de leer cualquier linea de la terminal, la bitacora tendra un encabezado, indicando la fecha y hora de inicio, y las palabras que debe identificar.
+
+Mientras el programa ejecuta la accion indicada, lee y analiza cada linea de la salida, buscando las palabras clave definidas por el usuario, al encontrar alguna de ellas, guarda la linea completa dentro de un archivo, y repite el proceso hasta terminar la ejecucion.
+
+La lectura de cada linea se da por el delimitador `\n`, con estos datos, se busca la ocurrencia de cada palabra clave, y en caso de ser encontrada, se guardara una unica vez, sin embargo, los contadores de cada palabra incrementaran por cada ocurrencia, al finalizar la ejecucion, estos contadores son desplegados asi como agregados al final de la bitacora.
 
 ### Opciones
 
-El usuario puede agregar o quitar palabras clave de la lista a buscar, utilizando los indices de posicion de cada palabra, asimismo, puede cambiar el nombre que tendra el archivo de bitacora, y por ultimo, tiene la opcion de regresar al menu principal.
+Las opciones disponibles son para configurar las palabras clave, el nombre de la bitacora, o, regresar al menu principal.
+
+Configurar las palabras clave permite agregar, modificar o eliminar palabras, al agregar palabras, estas se iran apilando una tras otra, para modificar y eliminar palabras, se debe utilizar el indice que tienen en la lista.
+
+La bitacora puede ser asignada un nombre, sin embargo, unicamente se admiten caracteres alfanumericos, la extension `.txt` se coloca automaticamente al ser creada la bitacora.
 
 ### Salida
 
 Finaliza la ejecucion del programa.
 
-## Directorios
+## Organizacion
 
-Remos se organiza en un directorio principal ```remos/```, adentro se encuentran dos archivos para el nombre de la bitacora y la lista de palabras, asimismo, aqui se guarda el archivo de bitacora, generando la siguiende estructura:
+Remos se organiza en un directorio principal ```remos/```, donde se encuentra un archivo de configuracion, con el nombre de la bitacora y las palabras clave, y un directorio para las bitacoras, una estructura que puede ser visualizada de el siguiente modo:
 
-```
+```none
 remos/
-├─ config.cfg
-├─ logs.txt
-├─ words.txt
+╠═ config.cfg
+╚═ logs/
+   ╠═ log1.txt
+   ╠═ log2.txt
+        •
+        •
+        •
 ```
 
-- ```config.cfg``` es el nombre por defecto del archivo de configuracion y no se puede cambiar.
-- ```logs.txt``` es el nombre del archivo de bitacora, pero se puede cambiar en **Opciones**, tiene un limite de 64 caracteres.
-- ```words.txt``` es el nombre del archivo con la lista de palabras, no se puede cambiar el nombre, pero si el contenido en **Opciones**.
+- ```config.cfg``` es el nombre estatico por defecto, del archivo de configuracion.

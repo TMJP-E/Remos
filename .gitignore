@@ -54,5 +54,8 @@ dkms.conf
 # debug information files
 *.dwo
 
-#VSCode Settings
+# VSCode Settings
 .vscode/
+
+# Remos settings (for a cleaner cloning and execution)
+remos/
