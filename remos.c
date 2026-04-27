@@ -15,15 +15,18 @@
  *   Leer archivo de opciones
  *   (Agregar | Modificar | Eliminar) palabras clave
  *   Nombrar bitacora
+ *   (Agregar | Modificar | Eliminar) URL
+ *   Desactivar Webhook
  * Iniciar ejecucion
  *   Verificar archivo de opciones
  *   Desplegar configuracion actual
  *   Creacion de bitacora
  *   Encabezados de bitacora
  *   Lectura, guardado y conteo de lineas en la terminal
- *
+ *   Envio de datos mediante Webhook.
  * # = Completado
- * Se omite hacer mencion a la entrada del usuario, ya que es mejor practica manejarla en el flujo principal, no en una funcion separada.
+ *
+ * Se omite hacer mencion a la entrada del usuario como un apartado a desarrollar, ya que es mejor practica manejarla en el flujo principal, no en funciones separadas.
  *
  * Realizado por Joshua Tellez, bajo el equipo Remos, en la asignatura Programacion Estructurada.
  */
@@ -34,8 +37,12 @@
 #include <sys/stat.h>
 #include <stdbool.h>
 
+#define MAIN_DIR "remos"
+#define LOGS_DIR "logs"
+#define CONFIG_FILE "config.cfg"
+
 /**
- * @brief Desplegar el logo, de manera estatica.
+ * @brief Despliega el logo, de manera estatica.
  */
 void drawLogo()
 {
@@ -53,7 +60,7 @@ void drawLogo()
 }
 
 /**
- * @brief Desplegar el menu principal con tres opciones.
+ * @brief Despliega el menu principal con tres opciones.
  */
 void drawMenu()
 {
@@ -66,7 +73,7 @@ void drawMenu()
 }
 
 /**
- * @brief Desplegar el menu de opciones.
+ * @brief Despliega el menu de opciones.
  */
 void drawOptions()
 {
@@ -83,57 +90,89 @@ void drawOptions()
  *
  * @param path Direccion y nombre del directorio.
  *
- * @return Confirmacion del estado del directorio. `-1` indica que ya existe el directorio en la direccion y nombre especificados, `0` indica que se creo el directorio, `1` indica que no se creo el directorio.
+ * @return Confirmacion del estado del directorio. `-1` indica que ya existe el directorio en la direccion y nombre especificados, `0` indica que se creo el directorio, `1` indica que no se pudo crear el directorio.
  */
-int createDir(const char *path)
+int createDir(const char *path, unsigned int mode)
 {
     struct stat filebuf;
+    // Si el directorio ya existe, carga el directorio en el buffer usando `stat()`
     if (stat(path, &filebuf) == 0)
     {
         return -1;
     }
 
-    if (mkdir(path, 0755) == 0)
+    // Si el directorio es creado con `mkdir()`, el octal de permisos es -rwxr-xr-x
+    if (mkdir(path, mode) == 0)
     {
         return 0;
     }
 
+    // Si el directorio no pudo ser creado
     return 1;
 }
 
-void createFile()
+/**
+ * @brief Verifica y crea un archivo.
+ *
+ * @param path Direccion y nombre del archivo.
+ *
+ * @return Confirmacion del estado del archivo. `-1` indica que ya existe el archivo con la direccion y nombre especificados, `0` indica que se creo el archivo, `1` indica que no se pudo crear el archivo.
+ */
+int createFile(const char *filename)
 {
+    FILE *temporal_pointer;
+
+    // Si el archivo ya existe
+    if (temporal_pointer = fopen(filename, "r") != NULL)
+    {
+        fclose(temporal_pointer);
+        return -1;
+    }
+
+    // Si el archivo es creado, utilizando el modo de escritura, ya que no existe opcion exclusiva para creacion
+    if (temporal_pointer = fopen(filename, "w") != NULL)
+    {
+        fclose(temporal_pointer);
+        return 0;
+    }
+
+    // Si el archivo no pudo ser creado
+    return 1;
 }
 
 /**
- * @brief Inicializa los archivos necesarios para el programa.
+ * @brief Despliega el estado de creacion y accesso de archivos y directorios.
  *
- * @details
- * Crea el directorio `remos/`, adentro, crea el directorio `logs/` y el archivo `config.cfg`.
- *
- * @see createDir(), createFile()
+ * @param result El resultado de la operacion, la cual se encuentra especificada exactamente igual en directorios y archivos.
+ * @param type Cadena indicando el tipo a registrar, `"d"` para directorios, `"f"` para archivos.
  */
-void initializeFileStructure()
+void logDirOrFile(int result, char *type)
 {
-    const char *root_dir = "remos";
-    const char *log_dir = "logs";
-    const char *config_file = "remos";
-    char aux[32] = {0};
-
-    // Para que el proceso solo dependa de los nombres estaticos, se concatenan las variables.
-    strcat(aux, root_dir);
-    strcat(aux, "/");
-    strcat(aux, log_dir);
-    if (mkdir(aux, 0755) == 0)
+    char *message;
+    if (type == "d")
     {
-        printf("Directorio de bitacoras creado.\n");
+        message = "directorio";
     }
-    else
+    else if (type == "f")
     {
-        printf("Error al crear el directorio de bitacoras.\n");
+        message = "archivo";
+    };
+
+    switch (result)
+    {
+    case -1:
+        printf("El %s ya existe.", message);
+        break;
+    case 0:
+        printf("El %s fue creado.", message);
+        break;
+    default:
+        printf("No pudo crearse el %s.", message);
+        break;
     }
 }
 
+/* DEPRECATED
 // Funcion para inicializar los archivos de configuracion.
 void initializer(char config_filename[], char wordlist_filename[], char logs_filename[])
 {
@@ -156,9 +195,6 @@ void initializer(char config_filename[], char wordlist_filename[], char logs_fil
     strcat(wordlist_filename_local, wordlist_filename);
     char logs_name[64] = {0};
 
-    /*Abre o crea el archivo de configuraciones y obtiene el nombre de la bitacora.
-      Si el archivo no existe, lo crea y guarda el nombre del archivo de bitacora por defecto.
-      Si el archivo existe, lee el nombre del archivo de bitacora a usar.*/
 
     FILE *config_file = fopen(config_filename_local, "r");
     if (config_file == NULL)
@@ -187,6 +223,7 @@ void initializer(char config_filename[], char wordlist_filename[], char logs_fil
     }
     fclose(wordlist_file);
 }
+*/
 
 // Funcion de la ejecucion principal.
 void start()
@@ -200,6 +237,27 @@ void options()
 
 int main(int argc, char *argv[])
 {
+    /* WIP
+    const char *root_dir = MAIN_DIR;
+    const char *logs_dir = LOGS_DIR;
+    const char *config_file = CONFIG_FILE;
+    char aux[32] = {0};
+
+    createDir(root_dir, 0755);
+
+    // Para que el proceso solo dependa de los nombres estaticos, se concatenan las variables.
+    strcpy(aux, root_dir);
+    strcat(aux, "/");
+    strcat(aux, logs_dir);
+    createDir(aux, 0755);
+
+    strcpy(aux, root_dir);
+    strcat(aux, "/");
+    strcat(aux, config_file);
+    createFile(aux);
+    */
+
+    /* DEPRECATED
     char config_filename[] = "config.cfg";
     char wordlist_filename[] = "words.txt";
     char logs_filename[64] = "logs";
@@ -225,6 +283,6 @@ int main(int argc, char *argv[])
             break;
         }
     }
-
+    */
     return 0;
 }
