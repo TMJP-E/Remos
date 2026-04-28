@@ -42,7 +42,7 @@
 #define LOGS_DIR "logs"
 #define CONFIG_FILE "config.cfg"
 #define CONFIG_LENGTH 4096
-#define TEMP_FILE "config.tmp"
+#define TEMP_FILE "temp.tmp"
 #define INPUT_LENGTH 1024
 #define KEYS_COUNT 4
 
@@ -211,27 +211,20 @@ void logDirOrFile(int result, char *name, char *type)
  *
  * @details Lee cada linea por separado, y garantiza que se encuentren las claves de los pares clave-valor definidos en la especificacion,
  *
- * @param config_file El archivo de configuracion a validar.
+ * @param config_filename El archivo de configuracion a validar.
  *
  * @return Si tiene un formato valido o no.
  */
 bool validateConfigFile(FILE *config_file)
 {
-    bool valid = false;
-    int i = 0;
+    bool valid = true;
     char config_string[CONFIG_LENGTH] = {0};
     char keys[KEYS_COUNT][10] = {"keywords", "log", "url", "enabled"};
     char *key_delimiter = "=";
     char *token;
 
-    while (fgets(config_string, CONFIG_LENGTH, config_file) != NULL)
+    while (fgets(config_string, CONFIG_LENGTH, config_file) != NULL && valid)
     {
-        token = strtok(config_string, key_delimiter);
-        if (strcmp(token, keys[i]) == 0)
-        {
-            valid = true;
-            i++;
-        }
     }
 
     return valid;
@@ -247,9 +240,9 @@ bool validateConfigFile(FILE *config_file)
  * existe en el archivo, actualiza su valor; si no existe, la agrega al final.
  *
  * @param key La llave a buscar dentro del archivo de configuracion.
- * @param newValue El nuevo valor que se asignara a la llave especificada.
+ * @param new_value El nuevo valor que se asignara a la llave especificada.
  */
-void updateConfig(const char *key, const char *newValue)
+void updateConfig(const char *key, const char *new_value)
 {
     char configPath[128];
     char tempPath[128];
@@ -260,8 +253,8 @@ void updateConfig(const char *key, const char *newValue)
     FILE *originalFile = fopen(configPath, "r");
     FILE *tempFile = fopen(tempPath, "w");
 
-    char currentLine[1024];
-    char searchKey[256];
+    char currentLine[CONFIG_LENGTH];
+    char searchKey[INPUT_LENGTH];
     bool keyFound = false;
 
     // Prepara la cadena para la busqueda en el formato "key="
@@ -276,7 +269,7 @@ void updateConfig(const char *key, const char *newValue)
             if (strncmp(currentLine, searchKey, keyLength) == 0)
             {
                 // Si lo encontramos, escribimos la llave y el nuevo valor en el archivo temporal, y activamos keyFound
-                fprintf(tempFile, "%s=%s\n", key, newValue);
+                fprintf(tempFile, "%s=%s\n", key, new_value);
                 keyFound = true;
             }
             else
@@ -291,65 +284,22 @@ void updateConfig(const char *key, const char *newValue)
     // si no se encontro la llave, la agregamos al final del archivo temporal
     if (!keyFound)
     {
-        fprintf(tempFile, "%s=%s\n", key, newValue);
+        fprintf(tempFile, "%s=%s\n", key, new_value);
     }
 
     fclose(tempFile);
+
     // Reemplazamos el archivo original con el temporal
     remove(configPath);
     rename(tempPath, configPath);
 }
 
-// Funcion que actualiza la URL del webhook de Discord en el archivo de configuracion
-void updateWebhooklink()
-{
-    char newLink[256];
-    printf("Ingrese la nueva URL del webhook de Discord: ");
-    if (fgets(newLink, sizeof(newLink), stdin) != NULL)
-    {
-        newLink[strcspn(newLink, "\n")] = '\0';
-        updateConfig("url", newLink);
-        printf("URL del webhook de Discord actualizada a: %s\n", newLink);
-    }
-    else
-    {
-        printf("Error al leer la URL del webhook de Discord.\n");
-    }
-}
-
-// Funcion cambia el estado del webhook de discord en el archivo de configuracion
-void toggleWebhook()
-{
-    int currentStatus;
-    printf("Ingrese el nuevo estado del webhook de Discord (1 para activar, 0 para desactivar): ");
-    scanf("%d", &currentStatus);
-    while (getchar() != '\n')
-        ;
-    if (currentStatus == 1)
-    {
-        getchar();
-        updateConfig("enabled", "1");
-        printf("Webhook de Discord Activado\n");
-    }
-    else if (currentStatus == 0)
-    {
-        getchar();
-        updateConfig("enabled", "0");
-        printf("Webhook de Discord Desactivado\n");
-    }
-    else
-    {
-        printf("Entrada invalida. Por favor ingrese 1 para activar o 0 para desactivar el webhook de Discord.\n");
-    }
-}
-
 int main(int argc, char *argv[])
 {
     const char *root_dir = MAIN_DIR;
-    const char *logs_dir = LOGS_DIR;
-    const char *config_file = CONFIG_FILE;
+    char logs_dir[32] = {0};
+    char config_filename[32] = {0};
     int file_result = 0;
-    char aux[32] = {0};
 
     int input_int = 0;
     char input_char[INPUT_LENGTH] = "";
@@ -373,20 +323,16 @@ int main(int argc, char *argv[])
                 break;
             };
 
-            strcpy(aux, root_dir);
-            strcat(aux, "/");
-            strcat(aux, logs_dir);
-            if (!verifyDirExists(aux))
+            snprintf(logs_dir, sizeof(logs_dir), "%s/%s", MAIN_DIR, LOGS_DIR);
+            if (!verifyDirExists(logs_dir))
             {
                 printf("No se encontro el directorio de bitacoras.\n");
                 printf("Ingresa al menu de Opciones para crearlo.\n");
                 break;
             };
 
-            strcpy(aux, root_dir);
-            strcat(aux, "/");
-            strcat(aux, config_file);
-            if (!verifyFileExists(aux))
+            snprintf(config_filename, sizeof(logs_dir), "%s/%s", MAIN_DIR, CONFIG_FILE);
+            if (!verifyFileExists(config_filename))
             {
                 printf("No se encontro el archivo de configuracion.\n");
                 printf("Ingresa al menu de Opciones para crearlo.\n");
@@ -404,19 +350,15 @@ int main(int argc, char *argv[])
                 break;
 
             // Para que el proceso solo dependa de los nombres estaticos, se concatenan las variables.
-            strcpy(aux, root_dir);
-            strcat(aux, "/");
-            strcat(aux, logs_dir);
-            file_result = createDir(aux, 0755);
-            logDirOrFile(file_result, aux, "d");
+            snprintf(logs_dir, sizeof(logs_dir), "%s/%s", MAIN_DIR, LOGS_DIR);
+            file_result = createDir(logs_dir, 0755);
+            logDirOrFile(file_result, logs_dir, "d");
             if (file_result == 1)
                 break;
 
-            strcpy(aux, root_dir);
-            strcat(aux, "/");
-            strcat(aux, config_file);
-            file_result = createFile(aux);
-            logDirOrFile(file_result, aux, "f");
+            snprintf(config_filename, sizeof(logs_dir), "%s/%s", MAIN_DIR, CONFIG_FILE);
+            file_result = createFile(config_filename);
+            logDirOrFile(file_result, config_filename, "f");
             if (file_result == 1)
                 break;
 
