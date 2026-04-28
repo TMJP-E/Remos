@@ -300,6 +300,39 @@ void updateConfig(const char *key, const char *newValue) {
     rename(tempPath, configPath);
 }
 
+//Funcion que actualiza la URL del webhook de Discord en el archivo de configuracion
+void updateWebhooklink(){
+    char newLink[256];
+    printf("Ingrese la nueva URL del webhook de Discord: ");
+    if(fgets(newLink, sizeof(newLink), stdin)!=NULL){
+        newLink[strcspn(newLink, "\n")] = '\0';
+        updateConfig("url", newLink);
+        printf("URL del webhook de Discord actualizada a: %s\n", newLink);
+    }
+    else {
+        printf("Error al leer la URL del webhook de Discord.\n");
+    }
+}
+
+//Funcion cambia el estado del webhook de discord en el archivo de configuracion
+void toggleWebhook() {
+    int currentStatus;
+    printf("Ingrese el nuevo estado del webhook de Discord (1 para activar, 0 para desactivar): ");
+    scanf("%d", &currentStatus);
+    while (getchar() != '\n');
+    if (currentStatus == 1) {
+        getchar();
+        updateConfig("enabled", "1");
+        printf("Webhook de Discord Activado\n");
+    } else if (currentStatus == 0) {
+        getchar();
+        updateConfig("enabled", "0");
+        printf("Webhook de Discord Desactivado\n");
+    } else {
+        printf("Entrada invalida. Por favor ingrese 1 para activar o 0 para desactivar el webhook de Discord.\n");
+    }
+}
+
 
 int main(int argc, char *argv[])
 {
