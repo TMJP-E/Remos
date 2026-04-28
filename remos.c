@@ -41,7 +41,11 @@
 #define MAIN_DIR "remos"
 #define LOGS_DIR "logs"
 #define CONFIG_FILE "config.cfg"
+#define TEMP_FILE "config.tmp"
+
 #define INPUT_LENGTH 1024
+
+
 
 /**
  * @brief Despliega el logo, de manera estatica.
@@ -126,14 +130,14 @@ int createFile(const char *filename)
     FILE *temporal_pointer;
 
     // Si el archivo ya existe
-    if (temporal_pointer = fopen(filename, "r") != NULL)
+    if ((temporal_pointer = fopen(filename, "r")) != NULL)
     {
         fclose(temporal_pointer);
         return -1;
     }
 
     // Si el archivo es creado, utilizando el modo de escritura, ya que no existe opcion exclusiva para creacion
-    if (temporal_pointer = fopen(filename, "w") != NULL)
+    if ((temporal_pointer = fopen(filename, "w")) != NULL)
     {
         fclose(temporal_pointer);
         return 0;
@@ -227,6 +231,75 @@ void initializer(char config_filename[], char wordlist_filename[], char logs_fil
     fclose(wordlist_file);
 }
 */
+
+
+// Funcion de la ejecucion principal.
+void start()
+{
+}
+
+// Funcion para manejar las opciones de nombre de bitacora y lista de palabras.
+void options()
+{
+}
+
+/**
+ * @brief Actualiza o agrega un valor en config.cfg en el formato llave=valor.
+ *
+ * @details Utiliza un archivo temporal para copiar la informacion y luego 
+ * reemplazarlo por el original. 
+ * Se utilizara tanto para cambiar el nombre de la bitacora, como para 
+ * agregar la URL del webhook y activar o desactivar el mismo. Si la llave 
+ * existe en el archivo, actualiza su valor; si no existe, la agrega al final.
+ *
+ * @param key La llave a buscar dentro del archivo de configuracion.
+ * @param newValue El nuevo valor que se asignara a la llave especificada.
+ */
+void updateConfig(const char *key, const char *newValue) {
+    char configPath[128];
+    char tempPath[128];
+
+    snprintf(configPath, sizeof(configPath), "%s/%s", MAIN_DIR, CONFIG_FILE);
+    snprintf(tempPath, sizeof(tempPath), "%s/%s", MAIN_DIR, TEMP_FILE);
+
+    FILE *originalFile = fopen(configPath, "r");
+    FILE *tempFile = fopen(tempPath, "w");
+
+    char currentLine[1024];
+    char searchKey[256];
+    bool keyFound = false;
+
+    // Prepara la cadena para la busqueda en el formato "key="
+    snprintf(searchKey, sizeof(searchKey), "%s=", key);
+    int keyLength = strlen(searchKey);
+
+
+    if (originalFile != NULL) {
+        while (fgets(currentLine, sizeof(currentLine), originalFile)!=NULL){
+            //Comparamos solo hasta la longitud de "key="
+            if (strncmp(currentLine, searchKey, keyLength)==0){
+                //Si lo encontramos, escribimos la llave y el nuevo valor en el archivo temporal, y activamos keyFound
+                fprintf(tempFile, "%s=%s\n", key, newValue);
+                keyFound = true;
+            } else {
+                // Si no es la linea que buscamos, la copiamos tal cual al archivo temporal
+                fprintf(tempFile, "%s", currentLine);
+            }
+        }
+        fclose(originalFile);
+    }
+
+    //si no se encontro la llave, la agregamos al final del archivo temporal
+    if (!keyFound) {
+        fprintf(tempFile, "%s=%s\n", key, newValue);
+    }
+
+    fclose (tempFile);
+    // Reemplazamos el archivo original con el temporal
+    remove(configPath);
+    rename(tempPath, configPath);
+}
+
 
 int main(int argc, char *argv[])
 {
