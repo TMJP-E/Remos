@@ -12,11 +12,11 @@
  * #Desplegar Menu Principal
  * #Desplegar Menu Opciones
  *   #Crear estructura de archivos
- *   -Leer archivo de opciones
- *   -(Agregar | Modificar | Eliminar) palabras clave
- *   -Nombrar bitacora
- *   -(Agregar | Modificar | Eliminar) URL
- *   -Desactivar Webhook
+ *   #Verificar archivo de opciones
+ *   (#Agregar | #Modificar | Eliminar) palabras clave
+ *   #Nombrar bitacora
+ *   #(Agregar | Modificar) URL
+ *   #Desactivar Webhook
  *   -Verificacion Webhook
  * Iniciar ejecucion
  *   #Verificar archivo de opciones
@@ -100,14 +100,14 @@ void drawOptions()
  */
 bool verifyDirExists(const char *path)
 {
-    struct stat filebuf;
-    return (stat(path, &filebuf) == 0);
+    struct stat file_buf;
+    return (stat(path, &file_buf) == 0);
 }
 
 /**
  * @brief Verifica si existe el archivo ingresado.
  *
- * @param path Direccion y nombre del directorio
+ * @param filename Direccion y nombre del directorio
  *
  * @return Si existe el archivo o no.
  */
@@ -123,6 +123,7 @@ bool verifyFileExists(const char *filename)
  * @brief Verifica y crea un directorio.
  *
  * @param path Direccion y nombre del directorio.
+ * @param mode Bytes de permisos en el formato UNIX `-rwxrwxrwx`.
  *
  * @return Confirmacion del estado del directorio. `-1` indica que ya existe el directorio en la direccion y nombre especificados, `0` indica que se creo el directorio, `1` indica que no se pudo crear el directorio.
  *
@@ -149,7 +150,7 @@ int createDir(const char *path, unsigned int mode)
 /**
  * @brief Verifica y crea un archivo.
  *
- * @param path Direccion y nombre del archivo.
+ * @param filename Direccion y nombre del archivo.
  *
  * @return Confirmacion del estado del archivo. `-1` indica que ya existe el archivo con la direccion y nombre especificados, `0` indica que se creo el archivo, `1` indica que no se pudo crear el archivo.
  */
@@ -178,6 +179,7 @@ int createFile(const char *filename)
  * @brief Despliega el estado de creacion y accesso de archivos y directorios.
  *
  * @param result El resultado de la operacion, la cual se encuentra especificada exactamente igual en directorios y archivos.
+ * @param name Nombre del archivo o directorio.
  * @param type Cadena indicando el tipo a registrar, `"d"` para directorios, `"f"` para archivos.
  */
 void logDirOrFile(int result, char *name, char *type)
@@ -209,89 +211,116 @@ void logDirOrFile(int result, char *name, char *type)
 /**
  * @brief Realiza una validacion en el archivo de configuracion para que tenga un formato acorde a la especficacion.
  *
- * @details Lee cada linea por separado, y garantiza que se encuentren las claves de los pares clave-valor definidos en la especificacion,
+ * @details Lee cada linea por separado, y garantiza que se encuentren las claves de los pares clave-valor definidos en la especificacion, no valida los contenidos al ser dinamicos
  *
- * @param config_filename El archivo de configuracion a validar.
+ * @param config_path La direccion del archivo de configuracion a validar.
  *
- * @return Si tiene un formato valido o no.
+ * @return Si tiene un formato valido o no, esto es, que se encuentren todas las claves
  */
-bool validateConfigFile(FILE *config_file)
+bool validateConfigFile(char *config_path)
 {
-    bool valid = true;
-    char config_string[CONFIG_LENGTH] = {0};
     char keys[KEYS_COUNT][10] = {"keywords", "log", "url", "enabled"};
+    char config_string[CONFIG_LENGTH] = {0};
     char *key_delimiter = "=";
     char *token;
+    bool valid = true;
+    bool checked[KEYS_COUNT] = {false};
 
-    while (fgets(config_string, CONFIG_LENGTH, config_file) != NULL && valid)
+    // Abre el archivo con la direccion especificada y comprueba si existe.
+    FILE *config_file = fopen(config_path, "r");
+    if (config_file == NULL)
     {
+        return false;
+    }
+
+    // Verifica que se encuentren las cuatro claves, sin importar el orden o claves adicionales.
+    while (fgets(config_string, CONFIG_LENGTH, config_file) != NULL)
+    {
+        token = strtok(config_string, key_delimiter);
+        for (size_t i = 0; i < KEYS_COUNT; i++)
+        {
+            if (strcmp(token, keys[i]) == 0 && !checked[i])
+            {
+                checked[i] = true;
+                break;
+            }
+        }
+    }
+
+    // Valida que se encuentren todas las claves.
+    for (size_t i = 0; i < KEYS_COUNT; i++)
+    {
+        valid = checked[i] && valid;
     }
 
     return valid;
 }
 
 /**
- * @brief Actualiza o agrega un valor en config.cfg en el formato llave=valor.
+ * @brief Actualiza o agrega un valor en config.cfg en el formato clave=valor.
  *
  * @details Utiliza un archivo temporal para copiar la informacion y luego
  * reemplazarlo por el original.
  * Se utilizara tanto para cambiar el nombre de la bitacora, como para
- * agregar la URL del webhook y activar o desactivar el mismo. Si la llave
+ * agregar la URL del webhook y activar o desactivar el mismo. Si la clave
  * existe en el archivo, actualiza su valor; si no existe, la agrega al final.
  *
- * @param key La llave a buscar dentro del archivo de configuracion.
- * @param new_value El nuevo valor que se asignara a la llave especificada.
+ * @param config_path La direccion del archivo de configuracion.
+ * @param key La clave a buscar dentro del archivo de configuracion.
+ * @param new_value El nuevo valor que se asignara a la clave especificada.
  */
-void updateConfig(const char *key, const char *new_value)
+void updateConfig(char *config_path, const char *key, const char *new_value)
 {
-    char configPath[128];
-    char tempPath[128];
+    char temp_path[128];
 
-    snprintf(configPath, sizeof(configPath), "%s/%s", MAIN_DIR, CONFIG_FILE);
-    snprintf(tempPath, sizeof(tempPath), "%s/%s", MAIN_DIR, TEMP_FILE);
+    snprintf(temp_path, sizeof(temp_path), "%s/%s", MAIN_DIR, TEMP_FILE);
 
-    FILE *originalFile = fopen(configPath, "r");
-    FILE *tempFile = fopen(tempPath, "w");
+    FILE *original_file = fopen(config_path, "r");
+    FILE *temp_file = fopen(temp_path, "w");
 
-    char currentLine[CONFIG_LENGTH];
-    char searchKey[INPUT_LENGTH];
-    bool keyFound = false;
+    char current_line[CONFIG_LENGTH];
+    char search_key[INPUT_LENGTH];
+    bool key_found = false;
 
     // Prepara la cadena para la busqueda en el formato "key="
-    snprintf(searchKey, sizeof(searchKey), "%s=", key);
-    int keyLength = strlen(searchKey);
+    snprintf(search_key, sizeof(search_key), "%s=", key);
+    int keyLength = strlen(search_key);
 
-    if (originalFile != NULL)
+    if (original_file != NULL)
     {
-        while (fgets(currentLine, sizeof(currentLine), originalFile) != NULL)
+        while (fgets(current_line, sizeof(current_line), original_file) != NULL)
         {
             // Comparamos solo hasta la longitud de "key="
-            if (strncmp(currentLine, searchKey, keyLength) == 0)
+            if (strncmp(current_line, search_key, keyLength) == 0)
             {
-                // Si lo encontramos, escribimos la llave y el nuevo valor en el archivo temporal, y activamos keyFound
-                fprintf(tempFile, "%s=%s\n", key, new_value);
-                keyFound = true;
+                // Si lo encontramos, escribimos la clave y el nuevo valor en el archivo temporal, y activamos key_found
+                fprintf(temp_file, "%s=%s\n", key, new_value);
+                key_found = true;
             }
             else
             {
                 // Si no es la linea que buscamos, la copiamos tal cual al archivo temporal
-                fprintf(tempFile, "%s", currentLine);
+                fprintf(temp_file, "%s", current_line);
             }
         }
-        fclose(originalFile);
+        fclose(original_file);
     }
 
-    // si no se encontro la llave, la agregamos al final del archivo temporal
-    if (!keyFound)
+    // Si no se encontro la clave, la agregamos al final del archivo temporal
+    if (!key_found)
     {
-        fprintf(tempFile, "%s=%s\n", key, new_value);
+        fprintf(temp_file, "%s=%s\n", key, new_value);
     }
 
-    fclose(tempFile);
+    fclose(temp_file);
 
     // Reemplazamos el archivo original con el temporal
-    remove(configPath);
-    rename(tempPath, configPath);
+    remove(config_path);
+    rename(temp_path, config_path);
+}
+
+char **readParameterContents()
+{
 }
 
 int main(int argc, char *argv[])
@@ -372,10 +401,11 @@ int main(int argc, char *argv[])
                 switch (input_int)
                 {
                 case 1: // Palabaras clave, ninguna entrada puede poseer el delimitador de nueva linea.
-                    // TODO (Agregar | Modificar | Eliminar) Palabras, Validar que las entradas no posean el delimitador de coma.
+                    // TODO (Agregar | Leer | Modificar | Eliminar) Palabras, Validar que las entradas no posean el delimitador de coma.
+
                     break;
                 case 2: // Bitacora
-                    // TODO (Nombrar | Modificar) Bitacora, Validar que el nombre no contenga el delimitador de igual.
+                    // TODO (Crear | Modificar | Leer) Bitacora, Validar que el nombre no contenga el delimitador de igual.
                     break;
                 case 3: // Webhook
                     // TODO (Agregar | Modificar | Eliminar) URL, Toggle de Webhook, Validar que el nombre no contenga el delimitador de igual.
