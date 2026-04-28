@@ -12,11 +12,12 @@
  * #Desplegar Menu Principal
  * #Desplegar Menu Opciones
  *   Crear estructura de archivos
- *   Leer archivo de opciones
- *   (Agregar | Modificar | Eliminar) palabras clave
- *   Nombrar bitacora
- *   (Agregar | Modificar | Eliminar) URL
- *   Desactivar Webhook
+ *   -Leer archivo de opciones
+ *   -(Agregar | Modificar | Eliminar) palabras clave
+ *   -Nombrar bitacora
+ *   -(Agregar | Modificar | Eliminar) URL
+ *   -Desactivar Webhook
+ *   -Verificacion Webhook
  * Iniciar ejecucion
  *   Verificar archivo de opciones
  *   Desplegar configuracion actual
@@ -40,6 +41,7 @@
 #define MAIN_DIR "remos"
 #define LOGS_DIR "logs"
 #define CONFIG_FILE "config.cfg"
+#define INPUT_LENGTH 1024
 
 /**
  * @brief Despliega el logo, de manera estatica.
@@ -80,7 +82,8 @@ void drawOptions()
     char *menu = ""
                  "\t1. Palabras clave\n"
                  "\t2. Bitacora\n"
-                 "\t3. Regresar\n";
+                 "\t3. Webhook\n"
+                 "\t4. Regresar\n";
 
     printf("%s", menu);
 }
@@ -146,7 +149,7 @@ int createFile(const char *filename)
  * @param result El resultado de la operacion, la cual se encuentra especificada exactamente igual en directorios y archivos.
  * @param type Cadena indicando el tipo a registrar, `"d"` para directorios, `"f"` para archivos.
  */
-void logDirOrFile(int result, char *type)
+void logDirOrFile(int result, char *name, char *type)
 {
     char *message;
     if (type == "d")
@@ -161,13 +164,13 @@ void logDirOrFile(int result, char *type)
     switch (result)
     {
     case -1:
-        printf("El %s ya existe.", message);
+        printf("El %s `%s` ya existe.", message, name);
         break;
     case 0:
-        printf("El %s fue creado.", message);
+        printf("El %s `%s` fue creado.", message, name);
         break;
     default:
-        printf("No pudo crearse el %s.", message);
+        printf("No pudo crearse el %s `%s`.", message, name);
         break;
     }
 }
@@ -225,37 +228,84 @@ void initializer(char config_filename[], char wordlist_filename[], char logs_fil
 }
 */
 
-// Funcion de la ejecucion principal.
-void start()
-{
-}
-
-// Funcion para manejar las opciones de nombre de bitacora y lista de palabras.
-void options()
-{
-}
-
 int main(int argc, char *argv[])
 {
-    /* WIP
-    const char *root_dir = MAIN_DIR;
-    const char *logs_dir = LOGS_DIR;
-    const char *config_file = CONFIG_FILE;
-    char aux[32] = {0};
+    int input_int = 0;
+    char input_char[INPUT_LENGTH] = "";
+    drawLogo();
+    printf("\n\nBienvenido a Remos, un programa para bitacoras en la terminal.\n\n");
+    do
+    {
+        printf("Ingrese la accion que desea realizar.\n");
+        drawMenu();
+        scanf("%d", &input_int);
+        getchar();
 
-    createDir(root_dir, 0755);
+        switch (input_int)
+        {
+        case 1: // Iniciar
+            // TODO Flujo principal del programa
+            break;
+        case 2: // Opciones
+            // Flujo para la inicializacion de archivos
+            const char *root_dir = MAIN_DIR;
+            const char *logs_dir = LOGS_DIR;
+            const char *config_file = CONFIG_FILE;
+            char aux[32] = {0};
+            int file_result = 0;
 
-    // Para que el proceso solo dependa de los nombres estaticos, se concatenan las variables.
-    strcpy(aux, root_dir);
-    strcat(aux, "/");
-    strcat(aux, logs_dir);
-    createDir(aux, 0755);
+            file_result = createDir(root_dir, 0755);
+            logDirOrFile(file_result, root_dir, "d");
+            if (file_result == 1)
+            {
+                break;
+            }
 
-    strcpy(aux, root_dir);
-    strcat(aux, "/");
-    strcat(aux, config_file);
-    createFile(aux);
-    */
+            // Para que el proceso solo dependa de los nombres estaticos, se concatenan las variables.
+            strcpy(aux, root_dir);
+            strcat(aux, "/");
+            strcat(aux, logs_dir);
+            file_result = createDir(aux, 0755);
+            logDirOrFile(file_result, aux, "d");
+            if (file_result == 1)
+            {
+                break;
+            }
+
+            strcpy(aux, root_dir);
+            strcat(aux, "/");
+            strcat(aux, config_file);
+            file_result = createFile(aux);
+            logDirOrFile(file_result, aux, "f");
+            if (file_result == 1)
+            {
+                break;
+            }
+
+            do
+            {
+                printf("Ingrese la accion que desea realizar.\n");
+                drawOptions();
+                scanf("%d", &input_int);
+                getchar();
+
+                switch (input_int)
+                {
+                case 1: // Palabaras clave
+                    // TODO (Agregar | Modificar | Eliminar) Palabras
+                    break;
+                case 2: // Bitacora
+                    // TODO (Nombrar | Modificar) Bitacora
+                    break;
+                case 3: // Webhook
+                    // TODO (Agregar | Modificar | Eliminar) URL, Toggle de Webhook
+                    break;
+                default:
+                    break;
+                }
+            } while (input_int != 4);
+        }
+    } while (input_int != 3);
 
     /* DEPRECATED
     char config_filename[] = "config.cfg";
