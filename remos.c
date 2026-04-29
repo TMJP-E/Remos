@@ -20,9 +20,10 @@
  *   -Verificacion Webhook
  * Iniciar ejecucion
  *   #Verificar archivo de opciones
- *   Desplegar configuracion actual
- *   Creacion de bitacora
- *   Encabezados de bitacora
+ *   1. Leer archivo de opciones
+ *   2. Desplegar configuracion actual
+ *   3. Creacion de bitacora
+ *   4. Encabezados de bitacora
  *   Lectura, guardado y conteo de lineas en la terminal
  *   Envio de datos mediante Webhook.
  * # = Completado
@@ -284,27 +285,24 @@ void updateConfig(char *config_path, const char *key, const char *new_value)
 
     // Prepara la cadena para la busqueda en el formato "key="
     snprintf(search_key, sizeof(search_key), "%s=", key);
-    int keyLength = strlen(search_key);
+    int key_length = strlen(search_key);
 
-    if (original_file != NULL)
+    while (fgets(current_line, sizeof(current_line), original_file) != NULL)
     {
-        while (fgets(current_line, sizeof(current_line), original_file) != NULL)
+        // Comparamos solo hasta la longitud de "key="
+        if (strncmp(current_line, search_key, key_length) == 0)
         {
-            // Comparamos solo hasta la longitud de "key="
-            if (strncmp(current_line, search_key, keyLength) == 0)
-            {
-                // Si lo encontramos, escribimos la clave y el nuevo valor en el archivo temporal, y activamos key_found
-                fprintf(temp_file, "%s=%s\n", key, new_value);
-                key_found = true;
-            }
-            else
-            {
-                // Si no es la linea que buscamos, la copiamos tal cual al archivo temporal
-                fprintf(temp_file, "%s", current_line);
-            }
+            // Si lo encontramos, escribimos la clave y el nuevo valor en el archivo temporal, y activamos key_found
+            fprintf(temp_file, "%s=%s\n", key, new_value);
+            key_found = true;
         }
-        fclose(original_file);
+        else
+        {
+            // Si no es la linea que buscamos, la copiamos tal cual al archivo temporal
+            fprintf(temp_file, "%s", current_line);
+        }
     }
+    fclose(original_file);
 
     // Si no se encontro la clave, la agregamos al final del archivo temporal
     if (!key_found)
@@ -319,8 +317,41 @@ void updateConfig(char *config_path, const char *key, const char *new_value)
     rename(temp_path, config_path);
 }
 
-char **readParameterContents()
+/**
+ * @brief Lee el valor de la clave especificada en el archivo de configuracion
+ *
+ * @param config_path Direccion del archivo de configuracion.
+ * @param key Clave a buscar para obtener el valor.
+ *
+ * @return El valor asociado con la clave.
+ */
+char *readValueFromKey(char *config_path, const char *key)
 {
+    FILE *config_file = fopen(config_path, "r");
+
+    char current_line[CONFIG_LENGTH];
+    char search_key[INPUT_LENGTH];
+    char *key_delimiter = "=";
+    char *token;
+    bool key_found = false;
+
+    // Prepara la cadena para la busqueda en el formato "key="
+    snprintf(search_key, sizeof(search_key), "%s=", key);
+    int key_length = strlen(search_key);
+
+    while (fgets(current_line, sizeof(current_line), config_file) != NULL)
+    {
+        // Comparamos solo hasta la longitud de "key="
+        if (strncmp(current_line, search_key, key_length) == 0)
+        {
+            // Si lo encontramos, obtenemos el valor usando tokens y se retorna.
+            token = strtok(current_line, key_delimiter);
+            token = strtok(current_line, key_delimiter);
+            fclose(config_file);
+            return token;
+        }
+    }
+    return '\0';
 }
 
 int main(int argc, char *argv[])
