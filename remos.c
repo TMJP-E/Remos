@@ -15,12 +15,12 @@
  *   #Verificar archivo de opciones
  *   (#Agregar | #Modificar | Eliminar) palabras clave
  *   #Nombrar bitacora
- *   #(Agregar | Modificar) URL
+ *   (#Agregar | #Modificar | Eliminar) URL
  *   #Desactivar Webhook
  *   -Verificacion Webhook
  * Iniciar ejecucion
  *   #Verificar archivo de opciones
- *   1. Leer archivo de opciones
+ *   Leer archivo de opciones
  *   2. Desplegar configuracion actual
  *   3. Creacion de bitacora
  *   4. Encabezados de bitacora
@@ -39,13 +39,17 @@
 #include <sys/stat.h>
 #include <stdbool.h>
 
-#define MAIN_DIR "remos"
-#define LOGS_DIR "logs"
-#define CONFIG_FILE "config.cfg"
+#define MAIN_DIRNAME "remos"
+#define LOGS_DIRNAME "logs"
+
+#define CONFIG_FILENAME "config.cfg"
+#define TEMP_FILENAME "temp.tmp"
 #define CONFIG_LENGTH 4096
-#define TEMP_FILE "temp.tmp"
 #define INPUT_LENGTH 1024
-#define KEYS_COUNT 4
+
+#define OPTIONS_COUNT 4
+#define OPTIONS_LENGTH 16
+#define OPTIONS {"keywords", "log", "url", "enabled"}
 
 /**
  * @brief Despliega el logo, de manera estatica.
@@ -95,7 +99,7 @@ void drawOptions()
 /**
  * @brief Verifica si existe el directorio ingresado.
  *
- * @param path Direccion y nombre del directorio
+ * @param path Direccion y nombre del directorio.
  *
  * @return Si existe el directorio o no.
  */
@@ -108,13 +112,13 @@ bool verifyDirExists(const char *path)
 /**
  * @brief Verifica si existe el archivo ingresado.
  *
- * @param filename Direccion y nombre del directorio
+ * @param path Direccion y nombre del archivo.
  *
  * @return Si existe el archivo o no.
  */
-bool verifyFileExists(const char *filename)
+bool verifyFileExists(const char *path)
 {
-    FILE *temporal_pointer = open(filename, "r");
+    FILE *temporal_pointer = open(path, "r");
     bool exists = temporal_pointer != NULL;
     fclose(temporal_pointer);
     return exists;
@@ -128,63 +132,70 @@ bool verifyFileExists(const char *filename)
  *
  * @return Confirmacion del estado del directorio. `-1` indica que ya existe el directorio en la direccion y nombre especificados, `0` indica que se creo el directorio, `1` indica que no se pudo crear el directorio.
  *
- * @see verifyDir(), verifyFile()
+ * @related verifyDirExists()
  */
 int createDir(const char *path, unsigned int mode)
 {
-
+    // Verifica si el directorio ya existe
     if (verifyDirExists(path))
     {
         return -1;
     }
 
-    // Si el directorio es creado con `mkdir()`, el octal de permisos es -rwxr-xr-x
+    // El directorio es creado con `mkdir()` correctamente.
     if (mkdir(path, mode) == 0)
     {
         return 0;
     }
 
-    // Si el directorio no pudo ser creado
+    // Si el directorio no pudo ser creado por cualquier motivo.
     return 1;
 }
 
 /**
  * @brief Verifica y crea un archivo.
  *
- * @param filename Direccion y nombre del archivo.
+ * @param path Direccion y nombre del archivo.
  *
  * @return Confirmacion del estado del archivo. `-1` indica que ya existe el archivo con la direccion y nombre especificados, `0` indica que se creo el archivo, `1` indica que no se pudo crear el archivo.
+ *
+ * @related verifyFileExists()
  */
-int createFile(const char *filename)
+int createFile(const char *path)
 {
     FILE *temporal_pointer;
 
-    // Si el archivo ya existe
-    if (verifyFileExists(filename))
+    // Serifica si el archivo ya existe
+    if (verifyFileExists(path))
     {
         return -1;
     }
 
-    // Si el archivo es creado, utilizando el modo de escritura, ya que no existe opcion exclusiva para creacion
-    if ((temporal_pointer = fopen(filename, "w")) != NULL)
+    // El archivo es creado, utilizando el modo de escritura, ya que no existe opcion exclusiva para creacion.
+    if ((temporal_pointer = fopen(path, "w")) != NULL)
     {
         fclose(temporal_pointer);
         return 0;
     }
 
-    // Si el archivo no pudo ser creado
+    // Si el archivo no pudo ser creado por cualquier motivo.
     return 1;
 }
 
 /**
  * @brief Despliega el estado de creacion y accesso de archivos y directorios.
  *
- * @param result El resultado de la operacion, la cual se encuentra especificada exactamente igual en directorios y archivos.
+ * @details Utiliza el esquema tricotomico de las funciones `createDir()` y `createFile()`
+ *
+ * @param result Resultado de la operacion, la cual se encuentra especificada exactamente igual que en los directorios y archivos.
  * @param name Nombre del archivo o directorio.
  * @param type Cadena indicando el tipo a registrar, `"d"` para directorios, `"f"` para archivos.
+ *
+ * @related createDir(), createFile()
  */
 void logDirOrFile(int result, char *name, char *type)
 {
+    // Determina el tipo de dato para registrar.
     char *message;
     if (type == "d")
     {
@@ -195,6 +206,7 @@ void logDirOrFile(int result, char *name, char *type)
         message = "archivo";
     };
 
+    // Estado segun la especificacion tricotomica.
     switch (result)
     {
     case -1:
@@ -210,37 +222,38 @@ void logDirOrFile(int result, char *name, char *type)
 }
 
 /**
- * @brief Realiza una validacion en el archivo de configuracion para que tenga un formato acorde a la especficacion.
+ * @brief Realiza la validacion del archivo de configuracion para que tenga un formato acorde a la especficacion.
  *
  * @details Lee cada linea por separado, y garantiza que se encuentren las claves de los pares clave-valor definidos en la especificacion, no valida los contenidos al ser dinamicos
  *
- * @param config_path La direccion del archivo de configuracion a validar.
+ * @param path Direccion del archivo de configuracion a validar.
  *
  * @return Si tiene un formato valido o no, esto es, que se encuentren todas las claves
  */
-bool validateConfigFile(char *config_path)
+bool validateConfigFile(char *path)
 {
-    char keys[KEYS_COUNT][10] = {"keywords", "log", "url", "enabled"};
-    char config_string[CONFIG_LENGTH] = {0};
+    char option_keys[OPTIONS_COUNT][OPTIONS_LENGTH] = OPTIONS;
+    char current_line[INPUT_LENGTH] = {0};
     char *key_delimiter = "=";
     char *token;
     bool valid = true;
-    bool checked[KEYS_COUNT] = {false};
+    bool checked[OPTIONS_COUNT] = {false};
 
     // Abre el archivo con la direccion especificada y comprueba si existe.
-    FILE *config_file = fopen(config_path, "r");
+    FILE *config_file = fopen(path, "r");
     if (config_file == NULL)
     {
         return false;
     }
 
     // Verifica que se encuentren las cuatro claves, sin importar el orden o claves adicionales.
-    while (fgets(config_string, CONFIG_LENGTH, config_file) != NULL)
+    while (fgets(current_line, CONFIG_LENGTH, config_file) != NULL)
     {
-        token = strtok(config_string, key_delimiter);
-        for (size_t i = 0; i < KEYS_COUNT; i++)
+        token = strtok(current_line, key_delimiter);
+        for (size_t i = 0; i < OPTIONS_COUNT; i++)
         {
-            if (strcmp(token, keys[i]) == 0 && !checked[i])
+            // Si la llave coincide y no ha sido encontrada anteriormente.
+            if (strcmp(token, option_keys[i]) == 0 && !checked[i])
             {
                 checked[i] = true;
                 break;
@@ -249,7 +262,7 @@ bool validateConfigFile(char *config_path)
     }
 
     // Valida que se encuentren todas las claves.
-    for (size_t i = 0; i < KEYS_COUNT; i++)
+    for (size_t i = 0; i < OPTIONS_COUNT; i++)
     {
         valid = checked[i] && valid;
     }
@@ -258,23 +271,20 @@ bool validateConfigFile(char *config_path)
 }
 
 /**
- * @brief Actualiza o agrega un valor en config.cfg en el formato clave=valor.
+ * @brief Actualiza o agrega un valor en el archivo de configuracion con el formato clave=valor.
  *
- * @details Utiliza un archivo temporal para copiar la informacion y luego
- * reemplazarlo por el original.
- * Se utilizara tanto para cambiar el nombre de la bitacora, como para
- * agregar la URL del webhook y activar o desactivar el mismo. Si la clave
- * existe en el archivo, actualiza su valor; si no existe, la agrega al final.
+ * @details Utiliza un archivo temporal para copiar la informacion y luego reemplazarlo por el original.
+ * Se utilizara tanto para cambiar el nombre de la bitacora. Si la clave existe en el archivo, actualiza su valor; si no existe, la agrega al final.
  *
- * @param config_path La direccion del archivo de configuracion.
- * @param key La clave a buscar dentro del archivo de configuracion.
- * @param new_value El nuevo valor que se asignara a la clave especificada.
+ * @param config_path Direccion del archivo de configuracion.
+ * @param key Clave a buscar dentro del archivo de configuracion.
+ * @param new_value Nuevo valor que se asignara a la clave especificada.
  */
 void updateConfig(char *config_path, const char *key, const char *new_value)
 {
-    char temp_path[128];
+    char temp_path[INPUT_LENGTH];
 
-    snprintf(temp_path, sizeof(temp_path), "%s/%s", MAIN_DIR, TEMP_FILE);
+    snprintf(temp_path, sizeof(temp_path), "%s/%s", MAIN_DIRNAME, TEMP_FILENAME);
 
     FILE *original_file = fopen(config_path, "r");
     FILE *temp_file = fopen(temp_path, "w");
@@ -323,7 +333,7 @@ void updateConfig(char *config_path, const char *key, const char *new_value)
  * @param config_path Direccion del archivo de configuracion.
  * @param key Clave a buscar para obtener el valor.
  *
- * @return El valor asociado con la clave.
+ * @return Valor asociado con la clave.
  */
 char *readValueFromKey(char *config_path, const char *key)
 {
@@ -345,7 +355,7 @@ char *readValueFromKey(char *config_path, const char *key)
         if (strncmp(current_line, search_key, key_length) == 0)
         {
             // Si lo encontramos, obtenemos el valor usando tokens y se retorna.
-            token = strtok(current_line, key_delimiter);
+            strtok(current_line, key_delimiter);
             token = strtok(current_line, key_delimiter);
             fclose(config_file);
             return token;
@@ -356,13 +366,17 @@ char *readValueFromKey(char *config_path, const char *key)
 
 int main(int argc, char *argv[])
 {
-    const char *root_dir = MAIN_DIR;
-    char logs_dir[32] = {0};
-    char config_filename[32] = {0};
+    const char *root_dir = MAIN_DIRNAME;
+    char logs_dir[INPUT_LENGTH] = {0};
+    char config_filename[INPUT_LENGTH] = {0};
     int file_result = 0;
+
+    char keys[OPTIONS_COUNT][OPTIONS_LENGTH] = OPTIONS;
+    char options[OPTIONS_COUNT][INPUT_LENGTH];
 
     int input_int = 0;
     char input_char[INPUT_LENGTH] = "";
+
     drawLogo();
     printf("\n\nBienvenido a Remos, un programa para bitacoras en la terminal.\n\n");
     do
@@ -375,7 +389,7 @@ int main(int argc, char *argv[])
         switch (input_int)
         {
         case 1: // Iniciar
-            // Verificar estructura de archivos existente
+            // Verificar directorio base.
             if (!verifyDirExists(root_dir))
             {
                 printf("No se encontro el directorio principal.\n");
@@ -383,7 +397,8 @@ int main(int argc, char *argv[])
                 break;
             };
 
-            snprintf(logs_dir, sizeof(logs_dir), "%s/%s", MAIN_DIR, LOGS_DIR);
+            // Verifica directorio de bitacoras
+            snprintf(logs_dir, sizeof(logs_dir), "%s/%s", MAIN_DIRNAME, LOGS_DIRNAME);
             if (!verifyDirExists(logs_dir))
             {
                 printf("No se encontro el directorio de bitacoras.\n");
@@ -391,7 +406,8 @@ int main(int argc, char *argv[])
                 break;
             };
 
-            snprintf(config_filename, sizeof(logs_dir), "%s/%s", MAIN_DIR, CONFIG_FILE);
+            // Verifica archivo de configuracion
+            snprintf(config_filename, sizeof(logs_dir), "%s/%s", MAIN_DIRNAME, CONFIG_FILENAME);
             if (!verifyFileExists(config_filename))
             {
                 printf("No se encontro el archivo de configuracion.\n");
@@ -399,24 +415,39 @@ int main(int argc, char *argv[])
                 break;
             }
 
-            // TODO Validar archivo de configuracion, obtener parametros de palabras, bitacora, URL y activacion, alerta de sobreescritura, recuadro de confirmacion, ingresar comando a ejecutar, agregar encabezados, leer linea de comandos, almacenar cada linea detectada con hora e indice, enviar cada linea mediante el Webhook.
+            // Valida que el archivo de configuracion tenga el formato adecuado
+            if (!validateConfigFile(config_filename))
+            {
+                printf("El archivo de configuracion esta corrupto.\n");
+                printf("Ingresa al menu de Opciones para ingresar los datos necesarios.\n");
+                break;
+            };
+
+            // Copia cada valor de cada clave a un arreglo local.
+            for (size_t i = 0; i < OPTIONS_COUNT; i++)
+            {
+                strcpy(options[i], readValueFromKey(config_filename, keys[i]));
+            }
+
+            // TODO Obtener parametros de palabras, bitacora, URL y activacion, alerta de sobreescritura, recuadro de confirmacion, ingresar comando a ejecutar, agregar encabezados, leer linea de comandos, almacenar cada linea detectada con hora e indice, enviar cada linea mediante el Webhook.
 
             break;
         case 2: // Opciones
-            // Inicializacion de archivos
+            // Inicializar directorio base
             file_result = createDir(root_dir, 0755);
             logDirOrFile(file_result, root_dir, "d");
             if (file_result == 1)
                 break;
 
-            // Para que el proceso solo dependa de los nombres estaticos, se concatenan las variables.
-            snprintf(logs_dir, sizeof(logs_dir), "%s/%s", MAIN_DIR, LOGS_DIR);
+            // Inicializar directorio de bitacoras
+            snprintf(logs_dir, sizeof(logs_dir), "%s/%s", MAIN_DIRNAME, LOGS_DIRNAME);
             file_result = createDir(logs_dir, 0755);
             logDirOrFile(file_result, logs_dir, "d");
             if (file_result == 1)
                 break;
 
-            snprintf(config_filename, sizeof(logs_dir), "%s/%s", MAIN_DIR, CONFIG_FILE);
+            // Inicializar archivo de configuracion
+            snprintf(config_filename, sizeof(logs_dir), "%s/%s", MAIN_DIRNAME, CONFIG_FILENAME);
             file_result = createFile(config_filename);
             logDirOrFile(file_result, config_filename, "f");
             if (file_result == 1)
