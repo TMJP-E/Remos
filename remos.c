@@ -150,7 +150,78 @@ int main(int argc, char *argv[])
                     // TODO (Crear | Modificar | Leer) Bitacora, Validar que el nombre no contenga el delimitador de igual.
                     break;
                 case 3: // Webhook
-                    // TODO (Agregar | Modificar | Eliminar) URL, Toggle de Webhook, Validar que el nombre no contenga el delimitador de igual.
+                    {
+                        int webhook_option = 0;
+                        printf("\n Configuracion de Webhook \n");
+                        printf("\t1. Modificar URL del Webhook \n");
+                        printf("\t2. Activar/Desactivar Webhook \n");
+                        printf("Ingrese la accion que desea realizar.\n");
+                        if (scanf("%d", &webhook_option)==1)
+                        {
+                            getchar();
+                            //OPCION 1: MODIFICAR URL
+                            if (webhook_option == 1)
+                            {
+                                char new_URL[INPUT_LENGTH] = {0};
+                                //Obtener URL actual y mostrarla como referencia para el usuario, si no existe, mostrar "Ninguna"
+                                char *current_URL = readValueFromKey(config_filename, "url");
+                                printf("La URL actual del Webhook es: %s\n", (current_URL != NULL) ? current_URL : "Ninguna");
+                                printf("Ingrese la nueva URL del Webhook (o presiona Enter para cancelar):\n");
+
+                                //Leer a nueva URL, validar que no contenga el delimitador de nueva linea, si la entrada es vacia, cancelar la operacion.
+                                if (fgets(new_URL, sizeof(new_URL),stdin) != NULL)
+                                {
+                                    new_URL[strcspn(new_URL, "\n")] = 0;
+                                    if (strlen(new_URL)>0)
+                                    {
+                                        updateConfig(config_filename,"url", new_URL);
+                                        printf("URL del Webhook actualizada exitosamente.\n");
+
+                                    }
+                                }
+                            }
+
+                            //OPCION 2: ACTIVAR/DESACTIVAR WEBHOOK
+                            else if (webhook_option == 2)
+                            {
+                                int new_status = -1; // iniciamos en -1 para validar la entrada del usuario, ya que solo se aceptan 0 y 1 como entradas validas.
+                                //Obtener estado actual del Webhook y mostrarlo como referencia para el usuario, si no existe o es 0, mostrar "Desactivado"
+                                char *current_status = readValueFromKey(config_filename, "enabled");
+                                printf("El Webhook actualmente esta: %s\n", (current_status != NULL && strcmp(current_status, "1")==0) ? "ACTIVADO" : "DESACTIVADO");
+                                printf("Ingrese 1 para activar o 0 para desactivar el Webhook: ");
+
+                                if (scanf("%d", &new_status)==1)
+                                {
+                                    getchar();
+                                    //validar que solo se acepten 0 y 1 como entradas validas, si la entrada es invalida, mostrar un mensaje de error.
+                                    if (new_status == 1 || new_status == 0)
+                                    {
+                                        updateConfig(config_filename,"enabled", (new_status == 1) ? "1" : "0");
+                                        printf("El Webhook ha sido %s exitosamente.\n", (new_status == 1) ? "activado" : "desactivado");
+                                    } else {
+                                        printf("Entrada invalida. Por favor ingrese 1 para activar o 0 para desactivar.\n");
+                                    }
+                                }
+                                else 
+                                {
+                                    getchar();
+                                    printf("Entrada Invalida. Por favor ingrese un numero correspondiente a la accion que desea realizar.\n");
+                                }
+                             
+                            }
+                            else 
+                            {
+                                printf("Entrada Invalida. Por favor ingrese un numero correspondiente a la accion que desea realizar.\n");
+                            }
+
+                        }
+                        else 
+                        {
+                            getchar();
+                            printf("Entrada Invalida. Por favor ingrese un numero correspondiente a la accion que desea realizar.\n");
+                        }
+
+                    }
                     break;
                 default:
                     break;
