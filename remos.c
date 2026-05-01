@@ -143,9 +143,119 @@ int main(int argc, char *argv[])
                 switch (input_int)
                 {
                 case 1: // Palabaras clave, ninguna entrada puede poseer el delimitador de nueva linea.
-                    // TODO (Agregar | Leer | Modificar | Eliminar) Palabras, Validar que las entradas no posean el delimitador de coma.
+                    // TODO (Modificar | Eliminar) Palabras, Validar que las entradas no posean el delimitador de coma.
+                    {
+                        //Cargamos todas las palabras clave, en la memoria, en un vector dinamico
+                        StringVector *kwords_vector = createVector();
+                        char *current_kwords = readValueFromKey(config_filename, "keywords");
 
-                    break;
+                        if (current_kwords != NULL && strlen(current_kwords)>0)
+                        {
+                            //Creamos copia de la cadena original para no modificarla con strtok
+                            char temp_kword_str[CONFIG_LENGTH];
+                            strcpy(temp_kword_str, current_kwords);
+                            char *token = strtok(temp_kword_str, ",");
+                            while (token != NULL)
+                            {
+                                pushElement(kwords_vector, strdup(token));
+                                token = strtok(NULL, ",");
+                            }
+                        }
+                        int kword_option = 0;
+                        do
+                        {
+                            
+                            printf("\n Configuracion de Palabras Clave \n");
+                            printf("\t1. Agregar Palabra Clave \n");
+                            printf("\t2. Modificar Palabra Clave \n");
+                            printf("\t3. Eliminar Palabra Clave \n");
+                            printf("\t4. Guardar y Salir \n");
+                            printf("Ingrese la accion que desea realizar.\n");
+                            if (scanf("%d", &kword_option)==1)
+                            {
+                                getchar();
+                                if (kword_option == 1)
+                                {
+                                    char new_kword[INPUT_LENGTH] = "";
+                                    //Este modo se repetira hasta que el usuario decida salir, este booleano es la bandera para controlar eso.
+                                    bool add_more = true;
+                                    printf("Ingrese la nueva palabra clave (o presiona Enter para cancelar):\n");
+                                    while (add_more)
+                                    {
+                                        printf("\nNueva palabra: ");
+                                        if (fgets(new_kword, sizeof(new_kword), stdin) != NULL)
+                                        {
+                                            //Validamos que la nueva palabra clave no contenga el delimitador de nueva linea, coma o igual
+                                            new_kword[strcspn(new_kword, "\n")] = 0;
+                                            if (strlen(new_kword) == 0)
+                                            {
+                                                printf("Saliendo del modo agregar...\n");
+                                                add_more = false; //Apagamos la bandera para salir del modo agregar si la entrada es vacia
+                                            }
+                                            else if (strchr(new_kword, ',')!= NULL || strchr(new_kword,'=') != NULL)
+                                            {
+                                                printf("Entrada Invalida. Las palabras clave no pueden contener los caracteres ',' o '='.\n");
+                                            }
+                                            else
+                                            {
+                                                //Agregamos la nueva palabra clave al vector dinamico
+                                                pushElement(kwords_vector, strdup(new_kword));
+                                                printf("Palabra clave agregada exitosamente.\n");
+                                            }
+                                        }
+                                        else {
+                                            //si algo falla en la lectura de la entrada nos salimos
+                                            add_more = false;
+                                        }
+                                    }
+                                }
+                                else if (kword_option == 2)
+                                {
+                                    //TODO
+                                }
+                                else if (kword_option == 3)
+                                {
+                                    //TODO
+                                }
+                                else if (kword_option != 4)
+                                {
+                                    printf("Entrada Invalida. Por favor ingrese un numero correspondiente a la accion que desea realizar.\n");
+                                }
+                            }
+                            else {
+                                getchar();
+                                printf("Entrada Invalida. Por favor ingrese un numero correspondiente a la accion que desea realizar.\n");
+                                kword_option = 0;
+                            }
+                        } while (kword_option != 4);
+                        
+                        char final_kwords[CONFIG_LENGTH] = "";
+                        //recorremos el vector dinamico para crear la cadeda final de palabras clave, separadas por comas, para guardar en el archivo de configuracion.
+                        for (size_t i = 0; i < kwords_vector->size; i++)
+                        {
+                            char *word = getElement(kwords_vector, i);
+                            if (i==0)
+                            {
+                                strcat(final_kwords, word);
+                            } else {
+                                strcat(final_kwords, ",");
+                                strcat(final_kwords, word);
+                            }
+                            //liberamos memoria del strdup de cada palabra clave, ya que no se necesita despues de crear la cadena final.
+                            free(word);
+                        }
+                        //Guardamos la cadena final de palabras clave en el archivo de configuracion, bajo la llave "keywords"
+                        updateConfig(config_filename, "keywords", final_kwords);
+                        printf("Palabras clave actualizadas exitosamente.\n");
+                        //Liberamos memoria del vector dinamico
+                        if (kwords_vector->data != NULL)
+                        {
+                            free(kwords_vector->data);
+                        }
+                        free(kwords_vector);
+
+                        break;
+                    }
                 case 2: // Bitacora
                     // TODO (Crear | Modificar | Leer) Bitacora, Validar que el nombre no contenga el delimitador de igual.
                     break;
@@ -221,8 +331,9 @@ int main(int argc, char *argv[])
                             printf("Entrada Invalida. Por favor ingrese un numero correspondiente a la accion que desea realizar.\n");
                         }
 
+                    
+                        break;
                     }
-                    break;
                 default:
                     break;
                 }
