@@ -265,6 +265,7 @@ int main(int argc, char *argv[])
                         printf("\n Configuracion de Webhook \n");
                         printf("\t1. Modificar URL del Webhook \n");
                         printf("\t2. Activar/Desactivar Webhook \n");
+                        printf("\t3. Regresar \n");
                         printf("Ingrese la accion que desea realizar.\n");
                         if (scanf("%d", &webhook_option)==1)
                         {
@@ -318,6 +319,10 @@ int main(int argc, char *argv[])
                                     printf("Entrada Invalida. Por favor ingrese un numero correspondiente a la accion que desea realizar.\n");
                                 }
                              
+                            }
+                            else if (webhook_option == 3)
+                            {
+                                printf("Regresando al menu de opciones...\n");
                             }
                             else 
                             {
