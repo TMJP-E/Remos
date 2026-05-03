@@ -4,5 +4,7 @@
 void drawLogo();
 void drawMenu();
 void drawOptions();
+void drawKeywordsMenu();
+void drawWebhookMenu();
 
 #endif

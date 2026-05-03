@@ -36,7 +36,7 @@ char *getElement(StringVector *vector, int index)
     return vector->data[index];
 }
 
-void *modifyElement(StringVector *vector, int index, char *element)
+void modifyElement(StringVector *vector, int index, char *element)
 {
     if (vector->size > index)
     {
