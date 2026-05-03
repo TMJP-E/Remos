@@ -16,5 +16,4 @@ void *modifyElement(StringVector *vector, int index, char *element);
 void removeElement(StringVector *vector, int index);
 size_t getSize(StringVector *vector);
 
-
 #endif

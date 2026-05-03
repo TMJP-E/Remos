@@ -5,5 +5,4 @@ void drawLogo();
 void drawMenu();
 void drawOptions();
 
-
 #endif

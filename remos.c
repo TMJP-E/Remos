@@ -46,6 +46,7 @@
 
 int main(int argc, char *argv[])
 {
+    // TODO Validacion de entradas usando scanf()
     char *root_dir = MAIN_DIRNAME;
     char logs_dir[INPUT_LENGTH] = {0};
     char config_filename[INPUT_LENGTH] = {0};
@@ -135,23 +136,24 @@ int main(int argc, char *argv[])
 
             do
             {
+                int input_options = 0;
                 printf("Ingrese la accion que desea realizar.\n");
                 drawOptions();
-                scanf("%d", &input_int);
+                scanf("%d", &input_options);
                 getchar();
 
-                switch (input_int)
+                switch (input_options)
                 {
                 case 1: // Palabaras clave, ninguna entrada puede poseer el delimitador de nueva linea.
                     // TODO (Modificar | Eliminar) Palabras, Validar que las entradas no posean el delimitador de coma.
                     {
-                        //Cargamos todas las palabras clave, en la memoria, en un vector dinamico
+                        // Cargamos todas las palabras clave, en la memoria, en un vector dinamico
                         StringVector *kwords_vector = createVector();
                         char *current_kwords = readValueFromKey(config_filename, "keywords");
 
-                        if (current_kwords != NULL && strlen(current_kwords)>0)
+                        if (current_kwords != NULL && strlen(current_kwords) > 0)
                         {
-                            //Creamos copia de la cadena original para no modificarla con strtok
+                            // Creamos copia de la cadena original para no modificarla con strtok
                             char temp_kword_str[CONFIG_LENGTH];
                             strcpy(temp_kword_str, current_kwords);
                             char *token = strtok(temp_kword_str, ",");
@@ -164,20 +166,20 @@ int main(int argc, char *argv[])
                         int kword_option = 0;
                         do
                         {
-                            
                             printf("\n Configuracion de Palabras Clave \n");
                             printf("\t1. Agregar Palabra Clave \n");
                             printf("\t2. Modificar Palabra Clave \n");
                             printf("\t3. Eliminar Palabra Clave \n");
                             printf("\t4. Guardar y Salir \n");
                             printf("Ingrese la accion que desea realizar.\n");
-                            if (scanf("%d", &kword_option)==1)
+                            if (scanf("%d", &kword_option) == 1)
                             {
                                 getchar();
-                                if (kword_option == 1)
+                                switch (kword_option)
                                 {
+                                case 1: // Agregar Palabra Clave
                                     char new_kword[INPUT_LENGTH] = "";
-                                    //Este modo se repetira hasta que el usuario decida salir, este booleano es la bandera para controlar eso.
+                                    // Este modo se repetira hasta que el usuario decida salir, este booleano es la bandera para controlar eso.
                                     bool add_more = true;
                                     printf("Ingrese la nueva palabra clave (o presiona Enter para cancelar):\n");
                                     while (add_more)
@@ -185,160 +187,151 @@ int main(int argc, char *argv[])
                                         printf("\nNueva palabra: ");
                                         if (fgets(new_kword, sizeof(new_kword), stdin) != NULL)
                                         {
-                                            //Validamos que la nueva palabra clave no contenga el delimitador de nueva linea, coma o igual
+                                            // Validamos que la nueva palabra clave no contenga el delimitador de nueva linea, coma o igual
                                             new_kword[strcspn(new_kword, "\n")] = 0;
                                             if (strlen(new_kword) == 0)
                                             {
                                                 printf("Saliendo del modo agregar...\n");
-                                                add_more = false; //Apagamos la bandera para salir del modo agregar si la entrada es vacia
+                                                add_more = false; // Apagamos la bandera para salir del modo agregar si la entrada es vacia
                                             }
-                                            else if (strchr(new_kword, ',')!= NULL || strchr(new_kword,'=') != NULL)
+                                            else if (strchr(new_kword, ',') != NULL || strchr(new_kword, '=') != NULL)
                                             {
                                                 printf("Entrada Invalida. Las palabras clave no pueden contener los caracteres ',' o '='.\n");
                                             }
                                             else
                                             {
-                                                //Agregamos la nueva palabra clave al vector dinamico
+                                                // Agregamos la nueva palabra clave al vector dinamico
                                                 pushElement(kwords_vector, strdup(new_kword));
                                                 printf("Palabra clave agregada exitosamente.\n");
                                             }
                                         }
-                                        else {
-                                            //si algo falla en la lectura de la entrada nos salimos
+                                        else
+                                        {
+                                            // Si algo falla en la lectura de la entrada, termina el modo de ejecucion.
                                             add_more = false;
                                         }
                                     }
-                                }
-                                else if (kword_option == 2)
-                                {
-                                    //TODO
-                                }
-                                else if (kword_option == 3)
-                                {
-                                    //TODO
-                                }
-                                else if (kword_option != 4)
-                                {
-                                    printf("Entrada Invalida. Por favor ingrese un numero correspondiente a la accion que desea realizar.\n");
+                                    break;
+                                case 2: // Modificar Palabra Clave
+                                    // TODO
+                                    break;
+                                case 3: // Eliminar Palabra Clave
+                                    break;
+                                case 4: // Guardar y Salir
+                                    // Recorremos el vector dinamico para crear la cadena final de palabras clave, separadas por comas, para guardar en el archivo de configuracion.
+                                    char final_kwords[CONFIG_LENGTH] = "";
+                                    char *word;
+                                    if (kwords_vector->size > 0)
+                                    {
+                                        *word = getElement(kwords_vector, 0);
+                                        strcat(final_kwords, word);
+
+                                        for (size_t i = 1; i < kwords_vector->size; i++)
+                                        {
+                                            *word = getElement(kwords_vector, i);
+
+                                            strcat(final_kwords, ",");
+                                            strcat(final_kwords, word);
+                                        }
+                                    }
+
+                                    // Guardamos la cadena final de palabras clave en el archivo de configuracion, bajo la llave "keywords"
+                                    updateConfig(config_filename, "keywords", final_kwords);
+                                    printf("Palabras clave actualizadas exitosamente.\n");
+                                    // Liberamos memoria del vector dinamico
+                                    if (kwords_vector->data != NULL)
+                                    {
+                                        free(kwords_vector->data);
+                                    }
+                                    free(kwords_vector);
+
+                                    break;
+                                default:
+                                    printf("Opcion Invalida,\n");
+                                    break;
                                 }
                             }
-                            else {
+                            else
+                            {
                                 getchar();
-                                printf("Entrada Invalida. Por favor ingrese un numero correspondiente a la accion que desea realizar.\n");
-                                kword_option = 0;
+                                printf("Opcion Invalida.\n");
                             }
                         } while (kword_option != 4);
-                        
-                        char final_kwords[CONFIG_LENGTH] = "";
-                        //recorremos el vector dinamico para crear la cadeda final de palabras clave, separadas por comas, para guardar en el archivo de configuracion.
-                        for (size_t i = 0; i < kwords_vector->size; i++)
-                        {
-                            char *word = getElement(kwords_vector, i);
-                            if (i==0)
-                            {
-                                strcat(final_kwords, word);
-                            } else {
-                                strcat(final_kwords, ",");
-                                strcat(final_kwords, word);
-                            }
-                            //liberamos memoria del strdup de cada palabra clave, ya que no se necesita despues de crear la cadena final.
-                            free(word);
-                        }
-                        //Guardamos la cadena final de palabras clave en el archivo de configuracion, bajo la llave "keywords"
-                        updateConfig(config_filename, "keywords", final_kwords);
-                        printf("Palabras clave actualizadas exitosamente.\n");
-                        //Liberamos memoria del vector dinamico
-                        if (kwords_vector->data != NULL)
-                        {
-                            free(kwords_vector->data);
-                        }
-                        free(kwords_vector);
-
                         break;
                     }
                 case 2: // Bitacora
                     // TODO (Crear | Modificar | Leer) Bitacora, Validar que el nombre no contenga el delimitador de igual.
                     break;
                 case 3: // Webhook
+                {
+                    int webhook_option = 0;
+                    printf("\n Configuracion de Webhook \n");
+                    printf("\t1. Modificar URL del Webhook \n");
+                    printf("\t2. Activar/Desactivar Webhook \n");
+                    printf("\t3. Regresar \n");
+                    printf("Ingrese la accion que desea realizar.\n");
+                    if (scanf("%d", &webhook_option) == 1)
                     {
-                        int webhook_option = 0;
-                        printf("\n Configuracion de Webhook \n");
-                        printf("\t1. Modificar URL del Webhook \n");
-                        printf("\t2. Activar/Desactivar Webhook \n");
-                        printf("\t3. Regresar \n");
-                        printf("Ingrese la accion que desea realizar.\n");
-                        if (scanf("%d", &webhook_option)==1)
+                        getchar();
+                        switch (webhook_option)
                         {
-                            getchar();
-                            //OPCION 1: MODIFICAR URL
-                            if (webhook_option == 1)
+                        case 1: // Modificar Webhook
+                            // Obtener URL actual y mostrarla como referencia para el usuario, si no existe, mostrar "Ninguna"
+                            char new_URL[INPUT_LENGTH] = {0};
+                            char *current_URL = readValueFromKey(config_filename, "url");
+                            printf("La URL actual del Webhook es: %s\n", (current_URL != NULL) ? current_URL : "Ninguna");
+                            printf("Ingrese la nueva URL del Webhook (o presiona Enter para cancelar):\n");
+
+                            // Leer a nueva URL, validar que no contenga el delimitador de nueva linea, si la entrada es vacia, cancelar la operacion.
+                            if (fgets(new_URL, sizeof(new_URL), stdin) != NULL)
                             {
-                                char new_URL[INPUT_LENGTH] = {0};
-                                //Obtener URL actual y mostrarla como referencia para el usuario, si no existe, mostrar "Ninguna"
-                                char *current_URL = readValueFromKey(config_filename, "url");
-                                printf("La URL actual del Webhook es: %s\n", (current_URL != NULL) ? current_URL : "Ninguna");
-                                printf("Ingrese la nueva URL del Webhook (o presiona Enter para cancelar):\n");
-
-                                //Leer a nueva URL, validar que no contenga el delimitador de nueva linea, si la entrada es vacia, cancelar la operacion.
-                                if (fgets(new_URL, sizeof(new_URL),stdin) != NULL)
+                                new_URL[strcspn(new_URL, "\n")] = 0;
+                                if (strlen(new_URL) > 0)
                                 {
-                                    new_URL[strcspn(new_URL, "\n")] = 0;
-                                    if (strlen(new_URL)>0)
-                                    {
-                                        updateConfig(config_filename,"url", new_URL);
-                                        printf("URL del Webhook actualizada exitosamente.\n");
-
-                                    }
+                                    updateConfig(config_filename, "url", new_URL);
+                                    printf("URL del Webhook actualizada exitosamente.\n");
                                 }
                             }
+                            break;
 
-                            //OPCION 2: ACTIVAR/DESACTIVAR WEBHOOK
-                            else if (webhook_option == 2)
+                        case 2: // Activar\Desactivar Webhook
+                            int new_status = -1;
+                            char *current_status = readValueFromKey(config_filename, "enabled");
+                            printf("El Webhook actualmente esta: %s\n", (current_status != NULL && strcmp(current_status, "1") == 0) ? "Activado" : "Desactivado");
+                            printf("Ingrese 1 para activar o 0 para desactivar el Webhook: ");
+
+                            if (scanf("%d", &new_status) == 1)
                             {
-                                int new_status = -1; // iniciamos en -1 para validar la entrada del usuario, ya que solo se aceptan 0 y 1 como entradas validas.
-                                //Obtener estado actual del Webhook y mostrarlo como referencia para el usuario, si no existe o es 0, mostrar "Desactivado"
-                                char *current_status = readValueFromKey(config_filename, "enabled");
-                                printf("El Webhook actualmente esta: %s\n", (current_status != NULL && strcmp(current_status, "1")==0) ? "ACTIVADO" : "DESACTIVADO");
-                                printf("Ingrese 1 para activar o 0 para desactivar el Webhook: ");
-
-                                if (scanf("%d", &new_status)==1)
+                                getchar();
+                                // validar que solo se acepten 0 y 1 como entradas validas, si la entrada es invalida, mostrar un mensaje de error.
+                                if (new_status == 1 || new_status == 0)
                                 {
-                                    getchar();
-                                    //validar que solo se acepten 0 y 1 como entradas validas, si la entrada es invalida, mostrar un mensaje de error.
-                                    if (new_status == 1 || new_status == 0)
-                                    {
-                                        updateConfig(config_filename,"enabled", (new_status == 1) ? "1" : "0");
-                                        printf("El Webhook ha sido %s exitosamente.\n", (new_status == 1) ? "activado" : "desactivado");
-                                    } else {
-                                        printf("Entrada invalida. Por favor ingrese 1 para activar o 0 para desactivar.\n");
-                                    }
+                                    updateConfig(config_filename, "enabled", (new_status == 1) ? "1" : "0");
+                                    printf("El Webhook ha sido %s exitosamente.\n", (new_status == 1) ? "activado" : "desactivado");
                                 }
-                                else 
+                                else
                                 {
-                                    getchar();
-                                    printf("Entrada Invalida. Por favor ingrese un numero correspondiente a la accion que desea realizar.\n");
+                                    printf("Opcion invalida.\n");
                                 }
-                             
                             }
-                            else if (webhook_option == 3)
+                            else
                             {
-                                printf("Regresando al menu de opciones...\n");
+                                getchar();
+                                printf("Opcion Invalida.\n");
                             }
-                            else 
-                            {
-                                printf("Entrada Invalida. Por favor ingrese un numero correspondiente a la accion que desea realizar.\n");
-                            }
-
+                            break;
+                        default:
+                            printf("Opcion Invalida.\n");
+                            break;
                         }
-                        else 
-                        {
-                            getchar();
-                            printf("Entrada Invalida. Por favor ingrese un numero correspondiente a la accion que desea realizar.\n");
-                        }
-
-                    
-                        break;
                     }
+                    else
+                    {
+                        getchar();
+                        printf("Opcion Invalida.\n");
+                    }
+                    break;
+                }
                 default:
                     break;
                 }

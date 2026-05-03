@@ -61,3 +61,11 @@ remos/
   - Las palabras clave se almacenan en la llave `keywords`, un ejemplo de implementacion es el siguiente: `keywords=error,warn,exit`, se encuentra la llave del campo y cada palabra separada por comas.
   - El nombre de la bitacora se almacena en la llave `log`, un ejemplo de implementacion es el siguiente: `log=log1.txt`
   - El Webhook tiene dos parametros asociados, `url` y `enabled`, el primero indica la URL completa del Webhook, el segundo indica si esta activo o inactivo.
+
+## Desarrollo
+
+Compilar con
+
+```sh
+gcc -o remos.out remos.c utils/draw_utils.c utils/config_utils.c utils/file_utils.c utils/vector.c
+```
