@@ -47,16 +47,29 @@
 #define INPUT_MESSAGE "Ingrese una opcion: "
 #define INVALID_MESSAGE "Opcion Invalida.\n"
 
+#define inputValidation(input)   \
+    printf(INPUT_MESSAGE);       \
+    if (scanf("%d", &input) > 1) \
+    {                            \
+        getchar();               \
+        printf(INVALID_MESSAGE); \
+        continue;                \
+    }                            \
+    getchar()
+
 int main(int argc, char *argv[])
 {
+    // Variables de Archivos
     char *root_dir = MAIN_DIRNAME;
     char logs_dir[INPUT_LENGTH] = {0};
     char config_filename[INPUT_LENGTH] = {0};
 
+    // Variable para las claves de opciones
     char keys[OPTIONS_COUNT][OPTIONS_LENGTH] = OPTIONS;
 
+    // Variables de entrada y estado principales
     int file_result = 0;
-    int main_input = 0;
+    int actions_input = 0;
     char input_char[INPUT_LENGTH] = "";
 
     drawLogo();
@@ -64,15 +77,9 @@ int main(int argc, char *argv[])
     do
     {
         drawMenu();
-        printf(INPUT_MESSAGE);
-        if (scanf("%d", &main_input) > 1)
-        {
-            getchar();
-            printf(INVALID_MESSAGE);
-            continue;
-        }
-        getchar();
-        switch (main_input)
+        inputValidation(actions_input);
+
+        switch (actions_input)
         {
         case 1: // Iniciar
         {
@@ -122,8 +129,6 @@ int main(int argc, char *argv[])
             break;
         }
         case 2: // Opciones
-        {
-
             // Inicializar directorio base
             file_result = createDir(root_dir, 0755);
             logDirOrFile(file_result, root_dir, "d");
@@ -144,19 +149,11 @@ int main(int argc, char *argv[])
             if (file_result == 1)
                 break;
 
+            int options_input = 0;
             do
             {
-                int options_input = 0;
                 drawOptions();
-                printf(INPUT_MESSAGE);
-                if (scanf("%d", &options_input) > 1)
-                {
-                    getchar();
-                    printf(INVALID_MESSAGE);
-                    continue;
-                }
-                getchar();
-
+                inputValidation(options_input);
                 switch (options_input)
                 {
                 case 1: // Palabaras clave
@@ -182,91 +179,81 @@ int main(int argc, char *argv[])
                     do
                     {
                         drawKeywordsMenu();
-                        printf(INPUT_MESSAGE);
-                        if (scanf("%d", &kword_option) > 1)
+                        inputValidation(kword_option);
+                        switch (kword_option)
                         {
-                            getchar();
-                            printf(INVALID_MESSAGE);
-                            continue;
-                        }
-                        getchar();
-
-                        {
-                            switch (kword_option)
+                        case 1: // Agregar Palabra Clave
+                            char new_kword[INPUT_LENGTH] = "";
+                            // Este modo se repetira hasta que el usuario decida salir, este booleano es la bandera para controlar eso.
+                            bool add_more = true;
+                            printf("Ingrese la nueva palabra clave (o presiona Enter para cancelar):\n");
+                            while (add_more)
                             {
-                            case 1: // Agregar Palabra Clave
-                                char new_kword[INPUT_LENGTH] = "";
-                                // Este modo se repetira hasta que el usuario decida salir, este booleano es la bandera para controlar eso.
-                                bool add_more = true;
-                                printf("Ingrese la nueva palabra clave (o presiona Enter para cancelar):\n");
-                                while (add_more)
+                                printf("\nNueva palabra: ");
+                                if (fgets(new_kword, sizeof(new_kword), stdin) != NULL)
                                 {
-                                    printf("\nNueva palabra: ");
-                                    if (fgets(new_kword, sizeof(new_kword), stdin) != NULL)
+                                    // Validamos que la nueva palabra clave no contenga el delimitador de nueva linea, coma o igual
+                                    new_kword[strcspn(new_kword, "\n")] = 0;
+                                    if (strlen(new_kword) == 0)
                                     {
-                                        // Validamos que la nueva palabra clave no contenga el delimitador de nueva linea, coma o igual
-                                        new_kword[strcspn(new_kword, "\n")] = 0;
-                                        if (strlen(new_kword) == 0)
-                                        {
-                                            printf("Saliendo del modo agregar...\n");
-                                            add_more = false; // Apagamos la bandera para salir del modo agregar si la entrada es vacia
-                                        }
-                                        else if (strchr(new_kword, ',') != NULL || strchr(new_kword, '=') != NULL)
-                                        {
-                                            printf("Entrada Invalida. Las palabras clave no pueden contener los caracteres ',' o '='.\n");
-                                        }
-                                        else
-                                        {
-                                            // Agregamos la nueva palabra clave al vector dinamico
-                                            pushElement(kwords_vector, strdup(new_kword));
-                                            printf("Palabra clave agregada exitosamente.\n");
-                                        }
+                                        printf("Saliendo del modo agregar...\n");
+                                        add_more = false; // Apagamos la bandera para salir del modo agregar si la entrada es vacia
+                                    }
+                                    else if (strchr(new_kword, ',') != NULL || strchr(new_kword, '=') != NULL)
+                                    {
+                                        printf("Entrada Invalida. Las palabras clave no pueden contener los caracteres ',' o '='.\n");
                                     }
                                     else
                                     {
-                                        // Si algo falla en la lectura de la entrada, termina el modo de ejecucion.
-                                        add_more = false;
+                                        // Agregamos la nueva palabra clave al vector dinamico
+                                        pushElement(kwords_vector, strdup(new_kword));
+                                        printf("Palabra clave agregada exitosamente.\n");
                                     }
                                 }
-                                break;
-                            case 2: // Modificar Palabra Clave
-                                // TODO
-                                break;
-                            case 3: // Eliminar Palabra Clave
-                                break;
-                            case 4: // Guardar y Salir
-                                // Recorremos el vector dinamico para crear la cadena final de palabras clave, separadas por comas, para guardar en el archivo de configuracion.
-                                char final_kwords[CONFIG_LENGTH] = "";
-                                char *word;
-                                if (kwords_vector->size > 0)
+                                else
                                 {
-                                    word = getElement(kwords_vector, 0);
-                                    strcat(final_kwords, word);
-
-                                    for (size_t i = 1; i < kwords_vector->size; i++)
-                                    {
-                                        word = getElement(kwords_vector, i);
-
-                                        strcat(final_kwords, ",");
-                                        strcat(final_kwords, word);
-                                    }
+                                    // Si algo falla en la lectura de la entrada, termina el modo de ejecucion.
+                                    add_more = false;
                                 }
-
-                                // Guardamos la cadena final de palabras clave en el archivo de configuracion, bajo la llave "keywords"
-                                updateConfig(config_filename, "keywords", final_kwords);
-                                printf("Palabras clave actualizadas exitosamente.\n");
-                                // Liberamos memoria del vector dinamico
-                                if (kwords_vector->data != NULL)
-                                {
-                                    free(kwords_vector->data);
-                                }
-                                free(kwords_vector);
-
-                                break;
-                            default:
-                                printf(INVALID_MESSAGE);
-                                break;
                             }
+                            break;
+                        case 2: // Modificar Palabra Clave
+                            // TODO
+                            break;
+                        case 3: // Eliminar Palabra Clave
+                            break;
+                        case 4: // Guardar y Salir
+                            // Recorremos el vector dinamico para crear la cadena final de palabras clave, separadas por comas, para guardar en el archivo de configuracion.
+                            char final_kwords[CONFIG_LENGTH] = "";
+                            char *word;
+                            if (kwords_vector->size > 0)
+                            {
+                                word = getElement(kwords_vector, 0);
+                                strcat(final_kwords, word);
+
+                                for (size_t i = 1; i < kwords_vector->size; i++)
+                                {
+                                    word = getElement(kwords_vector, i);
+
+                                    strcat(final_kwords, ",");
+                                    strcat(final_kwords, word);
+                                }
+                            }
+
+                            // Guardamos la cadena final de palabras clave en el archivo de configuracion, bajo la llave "keywords"
+                            updateConfig(config_filename, "keywords", final_kwords);
+                            printf("Palabras clave actualizadas exitosamente.\n");
+                            // Liberamos memoria del vector dinamico
+                            if (kwords_vector->data != NULL)
+                            {
+                                free(kwords_vector->data);
+                            }
+                            free(kwords_vector);
+
+                            break;
+                        default:
+                            printf(INVALID_MESSAGE);
+                            break;
                         }
 
                     } while (kword_option != 4);
@@ -281,15 +268,7 @@ int main(int argc, char *argv[])
                     do
                     {
                         drawWebhookMenu();
-                        printf(INPUT_MESSAGE);
-                        if (scanf("%d", &webhook_option) > 1)
-                        {
-                            getchar();
-                            printf(INVALID_MESSAGE);
-                            continue;
-                        }
-                        getchar();
-
+                        inputValidation(webhook_option);
                         switch (webhook_option)
                         {
                         case 1: // Modificar Webhook
@@ -341,15 +320,14 @@ int main(int argc, char *argv[])
                     printf(INVALID_MESSAGE);
                     break;
                 }
-            } while (main_input != 4);
-        }
+            } while (actions_input != 4);
         case 3:
             break;
         default:
             printf(INVALID_MESSAGE);
             break;
         }
-    } while (main_input != 3);
+    } while (actions_input != 3);
 
     return 0;
 }
