@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <string.h>
 
 #include "vector.h"
 
@@ -13,53 +14,68 @@ StringVector *createVector()
 
 void pushElement(StringVector *vector, char *element)
 {
+    int length = strlen(element) + 1;
     if (vector->data == NULL)
     {
-        vector->data = (char **)malloc(sizeof(char *));
         vector->capacity = 1;
+        vector->data = (char **)malloc(vector->capacity * sizeof(char *));
     }
     else if (vector->capacity <= vector->size)
     {
         vector->capacity *= 2;
-        vector->data = realloc(vector->data, vector->capacity * sizeof(char *));
+        vector->data = (char **)realloc(vector->data, vector->capacity * sizeof(char *));
     }
-    vector->data[vector->size] = element;
+
+    vector->data[vector->size] = (char *)calloc(sizeof(char), length + 1);
+    memset(vector->data[vector->size], 0, length + 1);
+    strcpy(vector->data[vector->size], element);
     vector->size++;
 }
 
-char *getElement(StringVector *vector, int index)
+char *getElement(StringVector *vector, size_t index)
 {
     if (vector->size <= index)
     {
         return NULL;
     }
-    return vector->data[index];
+    return strdup(vector->data[index]);
 }
 
-void modifyElement(StringVector *vector, int index, char *element)
+void modifyElement(StringVector *vector, size_t index, char *element)
 {
     if (vector->size > index)
     {
-        vector->data[index] = element;
+        strcpy(vector->data[index], element);
     }
 }
 
-void removeElement(StringVector *vector, int index)
+void removeElement(StringVector *vector, size_t index)
 {
     if (vector->size > index)
     {
+        free(vector->data[index]);
         for (size_t i = index; i < vector->size - 1; i++)
         {
             vector->data[i] = vector->data[i + 1];
         }
         vector->size--;
 
-        if (vector->size < vector->capacity)
+        if (vector->size < vector->capacity / 2)
         {
             vector->capacity /= 2;
             vector->data = realloc(vector->data, vector->capacity * sizeof(char *));
         }
     }
+}
+
+void freeVector(StringVector *vector)
+{
+    for (size_t i = 0; i < vector->capacity; i++)
+    {
+        free(vector->data[i]);
+    }
+    free(vector->data);
+    free(vector);
 }
 
 size_t getSize(StringVector *vector)

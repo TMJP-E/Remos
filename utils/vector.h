@@ -2,6 +2,7 @@
 #define VECTOR_H
 
 #include <stdlib.h>
+#include <string.h>
 
 typedef struct StringVector
 {
@@ -12,9 +13,10 @@ typedef struct StringVector
 
 StringVector *createVector();
 void pushElement(StringVector *vector, char *element);
-char *getElement(StringVector *vector, int index);
-void modifyElement(StringVector *vector, int index, char *element);
-void removeElement(StringVector *vector, int index);
+char *getElement(StringVector *vector, size_t index);
+void modifyElement(StringVector *vector, size_t index, char *element);
+void removeElement(StringVector *vector, size_t index);
+void freeVector(StringVector *vector);
 size_t getSize(StringVector *vector);
 
 #endif

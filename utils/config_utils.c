@@ -144,7 +144,7 @@ char *readValueFromKey(char *config_path, const char *key)
             strtok(current_line, key_delimiter);
             token = strtok(current_line, key_delimiter);
             fclose(config_file);
-            return token;
+            return strdup(token);
         }
     }
     return NULL;

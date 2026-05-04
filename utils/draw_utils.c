@@ -1,7 +1,9 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include "vector.h"
 
 #include "draw_utils.h"
+#include "vector.h"
 
 /// @brief Logo de Remos
 void drawLogo()
@@ -91,4 +93,15 @@ void drawWebhookMenu()
                  "\t3. Regresar\n";
 
     printf("%s", menu);
+}
+
+/// @brief Despliega todas las palabras clave guardadas en un vector de cadenas.
+void drawKeywords(StringVector *kwords_vector)
+{
+    printf("Palabras clave guardadas: ");
+    for (size_t i = 0; i < getSize(kwords_vector) - 1; i++)
+    {
+        printf("%s, ", getElement(kwords_vector, i));
+    }
+    printf("%s.\n", getElement(kwords_vector, getSize(kwords_vector) - 1));
 }

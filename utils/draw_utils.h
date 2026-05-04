@@ -6,5 +6,6 @@ void drawMenu();
 void drawOptions();
 void drawKeywordsMenu();
 void drawWebhookMenu();
+void drawKeywords(StringVector *kwords_vector);
 
 #endif
