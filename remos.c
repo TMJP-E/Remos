@@ -58,6 +58,48 @@
     }                            \
     getchar()
 
+// Manejo de la bitacora
+
+bool readLogName(char *config_filename)
+{
+    char *log_name = readValueFromKey(config_filename, "log");
+    if (log_name != NULL && strlen(log_name) > 0)
+    {
+        printf("El nombre actual de la bitacora es: %s\n", log_name);
+        free(log_name);
+    }
+    else
+    {
+        printf("El nombre actual de la bitacora es: log\n");
+    }
+    return true;
+}
+
+bool updateLogName(char *config_filename)
+{
+    char new_name[INPUT_LENGTH] = "";
+    printf("Cambiar nombre: ");
+    if (fgets(new_name, sizeof(new_name), stdin) != NULL)
+    {
+        // Validamos que el nombre no contenga el delimitador de `=`.
+        new_name[strcspn(new_name, "\n")] = 0;
+        if (strlen(new_name) == 0)
+        {
+            printf("No se cambio el nombre.");
+            return true;
+        }
+        if (strchr(new_name, '=') != NULL)
+        {
+            printf("Nombre invalido. La bitacora no puede tener el caracter '=' en el nombre.\n");
+            return false;
+        }
+        printf("Nuevo nombre de la bitacora: %s.\n", new_name);
+        updateConfig(config_filename, "log", new_name);
+        return true;
+    }
+    return false;
+}
+
 // Manejo de Palabras clave en un Vector
 
 bool loadKeywords(char *config_filename, StringVector *kwords_vector)
@@ -76,6 +118,7 @@ bool loadKeywords(char *config_filename, StringVector *kwords_vector)
             pushElement(kwords_vector, token);
             token = strtok(NULL, ",");
         }
+        free(current_kwords);
         return true;
     }
     return false;
@@ -425,8 +468,14 @@ int main(int argc, char *argv[])
                         }
                     } while (kword_option != 4);
                     break;
-                case 2: // Bitacora
-                    // TODO (Crear | Modificar | Leer) Bitacora, Validar que el nombre no contenga el delimitador `=`.
+                case 2:
+                    bool log_valid = false;
+                    readLogName(config_filename); // To Implement
+                    do
+                    {
+                        log_valid = updateLogName(config_filename); // To Implement
+                    } while (!log_valid);
+                    // Leer nombre del archivo o cargar por defecto `log`.txt, preguntar si desea modificar, dejar vacio en caso de que no, validar que no contenga =
                     break;
                 case 3:
                     int webhook_option = 0;
