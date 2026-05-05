@@ -4,6 +4,8 @@
 #include <curl/curl.h>
 #include "discord_utils.h"
 #include "config_utils.h"
+//Es seguro borrar en caso de que decidamos aislar el formateo a una sola vez.
+#include <time.h>
 
 /**
  * @def JSON_PAYLOAD_LENGTH_H
@@ -13,15 +15,22 @@
 #define JSON_PAYLOAD_LENGTH_H 2048
 
 void sendDiscordAlert(const char *url, const char *log) {
-    
+
     CURL *curl;
     CURLcode res;
     
+    //Es seguro borrar las siguientes 4 lineas en caso de que decidamos aislar el formateo a una sola vez. Solo no olvidar cambiar snprintf a: snprintf(json_payload, sizeof(json_payload), "{\"content\": \"%s\"}", log);
+    //Formateo al tiempo local.
+    time_t current_time = time(NULL);
+    struct tm *time_info = localtime(&current_time);
+    char formatted_time[20];
+    strftime(formatted_time, sizeof(formatted_time), "%H:%M:%S", time_info);
+
     char json_payload[JSON_PAYLOAD_LENGTH_H];
 
     // Construye el JSON, hay varios parámetros que se pueden incluir. como \"username\": \"Remos\"}"
     // Analizar posible caso  en el que el log sea  ->    error: expected ";" before "}"   <-     las comillas lo rompen?
-    snprintf(json_payload, sizeof(json_payload), "{\"content\": \"%s\"}", log);
+    snprintf(json_payload, sizeof(json_payload), "{\"content\": \"[%s] %s\"}", formatted_time, log);
 
     curl = curl_easy_init();
 
