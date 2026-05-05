@@ -66,12 +66,13 @@ bool readLogName(char *config_filename)
     if (log_name != NULL && strlen(log_name) > 0)
     {
         printf("El nombre actual de la bitacora es: %s\n", log_name);
-        free(log_name);
     }
     else
     {
         printf("El nombre actual de la bitacora es: log\n");
+        updateConfig(config_filename, "log", "log");
     }
+    free(log_name);
     return true;
 }
 
@@ -355,17 +356,42 @@ bool verifyStructure(char *root_dir, char *logs_dir, char *config_filename)
     return true;
 }
 
-// WIP
-bool readOptions(char *config_filename, StringVector *kwords_vector)
+bool readOptions(char *config_filename, char *log_name, char *url, bool *url_enabled)
 {
-    // Copia cada valor de cada clave a un arreglo local.
-    char keys[OPTIONS_COUNT][OPTIONS_LENGTH] = OPTIONS;
-    char options[OPTIONS_COUNT][INPUT_LENGTH];
-    for (size_t i = 0; i < OPTIONS_COUNT; i++)
+    char *value;
+    value = readValueFromKey(config_filename, "log");
+    if (value != NULL && strlen(value) > 0)
     {
-        strcpy(options[i], readValueFromKey(config_filename, keys[i]));
+        strcpy(log_name, value);
+    }
+    else
+    {
+        updateConfig(config_filename, "log", "log");
+        strcpy(log_name, "log");
     }
 
+    value = readValueFromKey(config_filename, "url");
+    if (value != NULL && strlen(value) > 0)
+    {
+        strcpy(url, value);
+    }
+    else
+    {
+        *url_enabled = false;
+        return true;
+    }
+
+    value = readValueFromKey(config_filename, "enabled");
+    if (value != NULL && strlen(value) > 0)
+    {
+        *url_enabled = strcmp(value, "1") == 0;
+    }
+    else
+    {
+        *url_enabled = false;
+    }
+
+    free(value);
     return true;
 }
 
@@ -393,6 +419,8 @@ bool optionsInitializer(char *root_dir, char *logs_dir, char *config_filename)
     logDirOrFile(file_result, config_filename, "f");
     if (file_result == 1)
         return false;
+
+    return true;
 }
 
 int main(int argc, char *argv[])
@@ -401,10 +429,14 @@ int main(int argc, char *argv[])
     char *root_dir = MAIN_DIRNAME;
     char logs_dir[INPUT_LENGTH] = {0};
     char config_filename[INPUT_LENGTH] = {0};
+
     StringVector *kwords_vector = createVector();
+    char log_name[INPUT_LENGTH] = {0};
+    char url[INPUT_LENGTH] = {0};
+    bool url_enabled = false;
 
     int actions_input = 0;
-    bool exit_condition = false;
+    char input_string[INPUT_LENGTH] = {0};
     drawLogo();
     printf("Bienvenido a Remos, un programa para bitacoras en la terminal.\n");
     do
@@ -417,12 +449,46 @@ int main(int argc, char *argv[])
             if (!verifyStructure(root_dir, logs_dir, config_filename))
                 break;
 
-            // TODO Obtener parametros de palabras, bitacora, URL y activacion, alerta de sobreescritura, recuadro de confirmacion, ingresar comando a ejecutar, agregar encabezados, leer linea de comandos, almacenar cada linea detectada con hora e indice, enviar cada linea mediante el Webhook.
-            // WIP
-            readOptions(config_filename, kwords_vector);
+            if (getSize(kwords_vector) == 0)
+            {
+                if (loadKeywords(config_filename, kwords_vector))
+                {
+                    printf("No hay palabras clave, ingrese al menu de opciones para agregar alguna.\n");
+                    break;
+                }
+            }
+
+            //  alerta de sobreescritura, recuadro de confirmacion, ingresar comando a ejecutar, agregar encabezados, leer linea de comandos, almacenar cada linea detectada con hora e indice, enviar cada linea mediante el Webhook.
+            readOptions(config_filename, log_name, url, &url_enabled);
+
+            int kwords_counter[] = calloc(sizeof(int), getSize(kwords_vector));
+            printf("Palabras clave para deteccion: ");
+            for (size_t i = 0; i < getSize(kwords_vector) - 1; i++)
+            {
+                printf("%s, ", getElement(kwords_vector, i));
+            }
+            printf("%s.\n", getElement(kwords_vector, getSize(kwords_vector) - 1));
+
+            printf("Nombre de la bitacora: %s\n", log_name);
+            if (verifyFileExists(logs_dir))
+            {
+                printf("Alerta: Se detecto un archivo de bitacoras ya existente, se reescribira el contenido de este archivo.\n");
+            }
+
+            if (url_enabled)
+            {
+                printf("URL del Webhook: %s\n", url);
+            }
+
+            printf("Ingrese el comando para ejecutar: ");
+            fgets(input_string, INPUT_LENGTH, stdin);
+            // Hacemos una pipe a stdin, leemos linea, evaluamos si encuentra una palabra clave, incrementamos su contador respectivo, guardamos en bitacora usando `append` con el formato adecuado, si hay URL, se envia lo mismo que se guarda, almacenamos archivo y cerramos pipe, repetir.
+
             break;
         case 2: // Opciones
-            optionsInitializer(root_dir, logs_dir, config_filename);
+            if (!optionsInitializer(root_dir, logs_dir, config_filename))
+                break;
+
             int options_input = 0;
             do
             {
@@ -433,7 +499,10 @@ int main(int argc, char *argv[])
                 case 1:
                     int kword_option = 0;
                     bool kword_operation = false;
-                    loadKeywords(config_filename, kwords_vector);
+                    if (getSize(kwords_vector) == 0)
+                    {
+                        loadKeywords(config_filename, kwords_vector);
+                    }
                     do
                     {
                         drawKeywordsMenu();
@@ -470,10 +539,10 @@ int main(int argc, char *argv[])
                     break;
                 case 2:
                     bool log_valid = false;
-                    readLogName(config_filename); // To Implement
+                    readLogName(config_filename);
                     do
                     {
-                        log_valid = updateLogName(config_filename); // To Implement
+                        log_valid = updateLogName(config_filename);
                     } while (!log_valid);
                     // Leer nombre del archivo o cargar por defecto `log`.txt, preguntar si desea modificar, dejar vacio en caso de que no, validar que no contenga =
                     break;
