@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 
 #include "vector.h"
 
@@ -81,4 +82,9 @@ void freeVector(StringVector *vector)
 size_t getSize(StringVector *vector)
 {
     return vector->size;
+}
+
+bool isEmpty(StringVector *vector)
+{
+    return getSize(vector) == 0;
 }

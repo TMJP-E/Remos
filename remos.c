@@ -76,7 +76,9 @@ bool loadKeywords(char *config_filename, StringVector *kwords_vector)
             pushElement(kwords_vector, token);
             token = strtok(NULL, ",");
         }
+        return true;
     }
+    return false;
 }
 
 bool addKeyword(StringVector *kwords_vector)
@@ -90,7 +92,7 @@ bool addKeyword(StringVector *kwords_vector)
         if (strlen(new_kword) == 0)
         {
             printf("No se agrego ninguna palabra.");
-            return false;
+            return true;
         }
         if (strchr(new_kword, ',') != NULL && strchr(new_kword, '=') != NULL)
         {
@@ -99,10 +101,92 @@ bool addKeyword(StringVector *kwords_vector)
         }
         // Agregamos la nueva palabra clave al vector dinamico
         pushElement(kwords_vector, strdup(new_kword));
-        printf("Palabra clave agregada exitosamente.\n");
+        printf("Palabra clave agregada.\n");
         return true;
     }
     return false;
+}
+
+bool modifyKeyword(StringVector *kwords_vector)
+{
+    if (isEmpty(kwords_vector))
+    {
+        printf("No hay palabras clave para modificar.\n");
+        return false;
+    }
+
+    int index_option = 0;
+    char new_kword[INPUT_LENGTH] = "";
+    printf("Ingrese el indice de la palabra que desea modificar (o -1 para regresar).\n");
+    for (size_t i = 0; i < getSize(kwords_vector); i++)
+    {
+        printf("%d. %s\n", (i + 1), getElement(kwords_vector, i));
+    }
+
+    if (scanf("%d", &index_option) > 1 && !(index_option >= 0 && index_option < getSize(kwords_vector)))
+    {
+        getchar();
+        printf(INVALID_MESSAGE);
+        return false;
+    }
+
+    if (index_option == -1)
+    {
+        printf("Ninguna palabra fue eliminada.");
+    }
+
+    printf("Nueva palabra: ");
+    if (fgets(new_kword, sizeof(new_kword), stdin) != NULL)
+    {
+        new_kword[strcspn(new_kword, "\n")] = 0;
+        if (strlen(new_kword) == 0)
+        {
+            printf("No se modifico la palabra.");
+            return true;
+        }
+        if (strchr(new_kword, ',') != NULL && strchr(new_kword, '=') != NULL)
+        {
+            printf("Palabra invalida. Las palabras clave no pueden contener los caracteres ',' o '='.\n");
+            return false;
+        }
+        printf("Palabra clave modificada de \"%s\" a \"%s\"\n", getElement(kwords_vector, index_option - 1), new_kword);
+        modifyElement(kwords_vector, index_option - 1, new_kword);
+        return true;
+    }
+    return false;
+}
+
+bool deleteKeyword(StringVector *kwords_vector)
+{
+    if (isEmpty(kwords_vector))
+    {
+        printf("No hay palabras clave para eliminar.\n");
+        return false;
+    }
+
+    int index_option = 0;
+    printf("Ingrese el indice de la palabra que desea eliminar (o -1 para regresar).\n");
+    for (size_t i = 0; i < getSize(kwords_vector); i++)
+    {
+        printf("%d. %s\n", (i + 1), getElement(kwords_vector, i));
+    }
+
+    if (scanf("%d", &index_option) > 1 && !(index_option >= 0 && index_option < getSize(kwords_vector)))
+    {
+        getchar();
+        printf(INVALID_MESSAGE);
+        return false;
+    }
+
+    if (index_option == -1)
+    {
+        printf("Ninguna palabra fue eliminada.");
+        return true;
+    }
+
+    printf("Palabra clave %s eliminada.\n", getElement(kwords_vector, index_option - 1));
+    removeElement(kwords_vector, index_option - 1);
+    return true;
 }
 
 bool saveKeywords(char *config_filename, StringVector *kwords_vector)
@@ -127,7 +211,7 @@ bool saveKeywords(char *config_filename, StringVector *kwords_vector)
 
     // Guardamos la cadena final de palabras clave en el archivo de configuracion, bajo la llave "keywords"
     updateConfig(config_filename, "keywords", final_kwords);
-    printf("Palabras clave actualizadas exitosamente.\n");
+    printf("Palabras clave actualizadas.\n");
     return true;
 }
 
@@ -135,10 +219,8 @@ bool saveKeywords(char *config_filename, StringVector *kwords_vector)
 
 bool loadURL(char *config_filename)
 {
-    bool validURL = true;
     char *current_URL = readValueFromKey(config_filename, "url");
-    if (current_URL == NULL)
-        validURL = false;
+    bool validURL = current_URL == NULL;
 
     printf("La URL actual del Webhook es: %s\n", validURL ? current_URL : "Ninguna");
     free(current_URL);
@@ -162,7 +244,7 @@ bool modifyWebhook(char *config_filename)
         if (strlen(new_URL) > 0)
         {
             updateConfig(config_filename, "url", new_URL);
-            printf("URL del Webhook actualizada exitosamente.\n");
+            printf("URL del Webhook actualizada.\n");
         }
         return true;
     }
@@ -174,6 +256,7 @@ bool toggleWebhook(char *config_filename)
     int new_status = -1;
     char *current_status = readValueFromKey(config_filename, "enabled");
     printf("El Webhook actualmente esta: %s\n", (current_status != NULL && strcmp(current_status, "1") == 0) ? "Activado" : "Desactivado");
+    free(current_status);
 
     printf("Ingrese 1 para activar o 0 para desactivar el Webhook: ");
     if (scanf("%d", &new_status) > 1 && !(new_status == 1 || new_status == 0))
@@ -229,6 +312,7 @@ bool verifyStructure(char *root_dir, char *logs_dir, char *config_filename)
     return true;
 }
 
+// WIP
 bool readOptions(char *config_filename, StringVector *kwords_vector)
 {
     // Copia cada valor de cada clave a un arreglo local.
@@ -239,7 +323,6 @@ bool readOptions(char *config_filename, StringVector *kwords_vector)
         strcpy(options[i], readValueFromKey(config_filename, keys[i]));
     }
 
-    // TODO Obtener parametros de palabras, bitacora, URL y activacion, alerta de sobreescritura, recuadro de confirmacion, ingresar comando a ejecutar, agregar encabezados, leer linea de comandos, almacenar cada linea detectada con hora e indice, enviar cada linea mediante el Webhook.
     return true;
 }
 
@@ -255,14 +338,14 @@ bool optionsInitializer(char *root_dir, char *logs_dir, char *config_filename)
         return false;
 
     // Inicializar directorio de bitacoras
-    snprintf(logs_dir, sizeof(logs_dir), "%s/%s", MAIN_DIRNAME, LOGS_DIRNAME);
+    snprintf(logs_dir, INPUT_LENGTH, "%s/%s", MAIN_DIRNAME, LOGS_DIRNAME);
     file_result = createDir(logs_dir, 0755);
     logDirOrFile(file_result, logs_dir, "d");
     if (file_result == 1)
         return false;
 
     // Inicializar archivo de configuracion
-    snprintf(config_filename, sizeof(logs_dir), "%s/%s", MAIN_DIRNAME, CONFIG_FILENAME);
+    snprintf(config_filename, INPUT_LENGTH, "%s/%s", MAIN_DIRNAME, CONFIG_FILENAME);
     file_result = createFile(config_filename);
     logDirOrFile(file_result, config_filename, "f");
     if (file_result == 1)
@@ -291,7 +374,8 @@ int main(int argc, char *argv[])
             if (!verifyStructure(root_dir, logs_dir, config_filename))
                 break;
 
-            // TODO
+            // TODO Obtener parametros de palabras, bitacora, URL y activacion, alerta de sobreescritura, recuadro de confirmacion, ingresar comando a ejecutar, agregar encabezados, leer linea de comandos, almacenar cada linea detectada con hora e indice, enviar cada linea mediante el Webhook.
+            // WIP
             readOptions(config_filename, kwords_vector);
             break;
         case 2: // Opciones
@@ -305,6 +389,7 @@ int main(int argc, char *argv[])
                 {
                 case 1:
                     int kword_option = 0;
+                    bool kword_operation = false;
                     loadKeywords(config_filename, kwords_vector);
                     do
                     {
@@ -314,17 +399,22 @@ int main(int argc, char *argv[])
                         switch (kword_option)
                         {
                         case 1:
-                            bool kword_added = false;
                             do
                             {
-                                kword_added = addKeyword(kwords_vector);
-                            } while (!kword_added);
+                                kword_operation = addKeyword(kwords_vector);
+                            } while (!kword_operation);
                             break;
-                        case 2: // Modificar Palabra Clave
-                            // TODO
+                        case 2:
+                            do
+                            {
+                                kword_operation = modifyKeyword(kwords_vector);
+                            } while (!kword_operation);
                             break;
-                        case 3: // Eliminar Palabra Clave
-                            // TODO
+                        case 3:
+                            do
+                            {
+                                kword_operation = deleteKeyword(kwords_vector);
+                            } while (!kword_operation);
                             break;
                         case 4:
                             saveKeywords(config_filename, kwords_vector);
