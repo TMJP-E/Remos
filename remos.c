@@ -43,6 +43,7 @@
 #include "utils/file_utils.h"
 #include "utils/config_utils.h"
 #include "utils/vector.h"
+#include "utils/log_utils.h"
 
 #define INPUT_MESSAGE "Ingrese una opcion: "
 #define INVALID_MESSAGE "Opcion Invalida.\n"
@@ -461,7 +462,7 @@ int main(int argc, char *argv[])
             //  alerta de sobreescritura, recuadro de confirmacion, ingresar comando a ejecutar, agregar encabezados, leer linea de comandos, almacenar cada linea detectada con hora e indice, enviar cada linea mediante el Webhook.
             readOptions(config_filename, log_name, url, &url_enabled);
 
-            int kwords_counter[] = calloc(sizeof(int), getSize(kwords_vector));
+            int *kwords_counter = calloc(getSize(kwords_vector),sizeof(int));
             printf("Palabras clave para deteccion: ");
             for (size_t i = 0; i < getSize(kwords_vector) - 1; i++)
             {
@@ -483,7 +484,9 @@ int main(int argc, char *argv[])
             printf("Ingrese el comando para ejecutar: ");
             fgets(input_string, INPUT_LENGTH, stdin);
             // Hacemos una pipe a stdin, leemos linea, evaluamos si encuentra una palabra clave, incrementamos su contador respectivo, guardamos en bitacora usando `append` con el formato adecuado, si hay URL, se envia lo mismo que se guarda, almacenamos archivo y cerramos pipe, repetir.
-
+            startLog(input_string, kwords_vector, kwords_counter, log_name, url, url_enabled);
+            
+            free(kwords_counter);
             break;
         case 2: // Opciones
             if (!optionsInitializer(root_dir, logs_dir, config_filename))
