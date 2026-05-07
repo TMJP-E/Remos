@@ -18,7 +18,11 @@
 void startLog(char *command, StringVector *keywords, int *counters, char *log_name, char *url, bool url_enabled) {
     command[strcspn(command, "\n")] = '\0';
 
-    FILE *proceso = popen(command, "r");
+    //Redirige la salida de stderr a stdout;
+    char full_command[CONFIG_LENGTH];
+    snprintf(full_command, sizeof(full_command), "%s 2>&1", command);
+
+    FILE *proceso = popen(full_command, "r");
     if (proceso == NULL) {
         printf("Error: no se pudo ejecutar el comando.\n");
         return;
