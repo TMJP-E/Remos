@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <sys/stat.h>
 #include <stdbool.h>
+#include <string.h>
 
 #include "file_utils.h"
 
@@ -28,7 +29,10 @@ bool verifyFileExists(const char *path)
 {
     FILE *temporal_pointer = fopen(path, "r");
     bool exists = temporal_pointer != NULL;
-    fclose(temporal_pointer);
+    if (exists)
+    {
+        fclose(temporal_pointer);
+    }
     return exists;
 }
 
@@ -104,12 +108,12 @@ int createFile(const char *path)
 void logDirOrFile(int result, char *name, char *type)
 {
     // Determina el tipo de dato para registrar.
-    char *message;
-    if (type == "d")
+    char *message="elemento";
+    if (strcmp(type, "d") == 0)
     {
         message = "directorio";
     }
-    else if (type == "f")
+    else if (strcmp(type, "f") == 0)
     {
         message = "archivo";
     };
