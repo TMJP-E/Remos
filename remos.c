@@ -573,7 +573,7 @@ int main(int argc, char *argv[])
                     } while (webhook_option != 3);
                     break;
                 case 4:
-                    return true;
+                    break;
                 default:
                     printf(INVALID_MESSAGE);
                     break;

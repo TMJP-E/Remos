@@ -98,10 +98,15 @@ void drawWebhookMenu()
 /// @brief Despliega todas las palabras clave guardadas en un vector de cadenas.
 void drawKeywords(StringVector *kwords_vector)
 {
-    printf("Palabras clave guardadas: ");
-    for (size_t i = 0; i < getSize(kwords_vector) - 1; i++)
-    {
-        printf("%s, ", getElement(kwords_vector, i));
-    }
-    printf("%s.\n", getElement(kwords_vector, getSize(kwords_vector) - 1));
+    //evita imprimir NULL o cadenas vacias, en caso de que no haya palabras clave guardadas.
+    if (getSize(kwords_vector)!=0){
+        printf("Palabras clave guardadas: ");
+        for (size_t i = 0; i < getSize(kwords_vector) - 1; i++)
+        {
+         printf("%s, ", getElement(kwords_vector, i));
+        }
+        printf("%s.\n", getElement(kwords_vector, getSize(kwords_vector) - 1));
+        return;
+    }   
+    printf("No hay palabras clave guardadas.\n");
 }
