@@ -14,13 +14,35 @@
  */
 #define JSON_PAYLOAD_LENGTH_H 2048
 
+void sanitizeForJSON(const char *input, char *output){
+
+    int j = 0;
+    
+    for (int i =0; input[i] != '\0'; i++){
+        
+        if (input[i] == '"' || input[i] == '\\') {
+            output[j++] = '\\'; // Agregamos la barra invertida de escape
+            output[j++] = input[i];
+        } 
+            // 4. Dejar pasar solo texto normal (eliminando saltos de linea y control)
+        else if ((unsigned char)input[i] >= 32) {
+            output[j++] = input[i];
+        }
+    }
+    output[j] = '\0';
+    
+}
+
 void sendDiscordAlert(const char *url, const char *log) {
 
     CURL *curl;
     CURLcode res;
-    char message[CONFIG_LENGTH];
-    strcpy(message, log);
-    message[strcspn(message, "\n")] = 0; // Elimina el salto de línea del mensaje para evitar problemas en el formato JSON.
+
+    char clean_message[CONFIG_LENGTH*2];
+    sanitizeForJSON(log, clean_message);
+    //char message[CONFIG_LENGTH];
+    //strcpy(message, log);
+    //message[strcspn(message, "\n")] = 0; // Elimina el salto de línea del mensaje para evitar problemas en el formato JSON.
     //Es seguro borrar las siguientes 4 lineas en caso de que decidamos aislar el formateo a una sola vez. Solo no olvidar cambiar snprintf a: snprintf(json_payload, sizeof(json_payload), "{\"content\": \"%s\"}", log);
     //Formateo al tiempo local.
     time_t current_time = time(NULL);
@@ -32,7 +54,7 @@ void sendDiscordAlert(const char *url, const char *log) {
 
     // Construye el JSON, hay varios parámetros que se pueden incluir. como \"username\": \"Remos\"}"
     // Analizar posible caso  en el que el log sea  ->    error: expected ";" before "}"   <-     las comillas lo rompen?
-    snprintf(json_payload, sizeof(json_payload), "{\"content\": \"[%s] %s\"}", formatted_time, message);
+    snprintf(json_payload, sizeof(json_payload), "{\"content\": \"[%s] %s\"}", formatted_time, clean_message);
 
     curl = curl_easy_init();
 
