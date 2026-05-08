@@ -122,13 +122,13 @@ void logDirOrFile(int result, char *name, char *type)
     switch (result)
     {
     case -1:
-        printf("El %s `%s` ya existe.", message, name);
+        printf("El %s `%s` ya existe.\n", message, name);
         break;
     case 0:
-        printf("El %s `%s` fue creado.", message, name);
+        printf("El %s `%s` fue creado.\n", message, name);
         break;
     default:
-        printf("No pudo crearse el %s `%s`.", message, name);
+        printf("No pudo crearse el %s `%s`.\n", message, name);
         break;
     }
 }

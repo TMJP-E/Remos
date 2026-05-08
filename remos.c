@@ -168,18 +168,18 @@ bool modifyKeyword(StringVector *kwords_vector)
         printf("%d. %s\n", (i + 1), getElement(kwords_vector, i));
     }
 
-    if (scanf("%d", &index_option) > 1 && !(index_option >= 0 && index_option < getSize(kwords_vector)))
+    if (scanf("%d", &index_option) != 1 || !(index_option >= 1 && index_option <= getSize(kwords_vector)))
     {
         getchar();
         printf(INVALID_MESSAGE);
         return false;
     }
-
+    getchar();
     if (index_option == -1)
     {
         printf("Ninguna palabra fue eliminada.");
     }
-
+    
     printf("Nueva palabra: ");
     if (fgets(new_kword, sizeof(new_kword), stdin) != NULL)
     {
@@ -216,7 +216,7 @@ bool deleteKeyword(StringVector *kwords_vector)
         printf("%d. %s\n", (i + 1), getElement(kwords_vector, i));
     }
 
-    if (scanf("%d", &index_option) > 1 && !(index_option >= 0 && index_option < getSize(kwords_vector)))
+    if (scanf("%d", &index_option) != 1 || !(index_option >= 1 && index_option <= getSize(kwords_vector)))
     {
         getchar();
         printf(INVALID_MESSAGE);
@@ -329,7 +329,7 @@ bool verifyStructure(char *root_dir, char *logs_dir, char *config_filename)
     };
 
     // Verifica directorio de bitacoras
-    snprintf(logs_dir, sizeof(logs_dir), "%s/%s", MAIN_DIRNAME, LOGS_DIRNAME);
+    snprintf(logs_dir, INPUT_LENGTH, "%s/%s", MAIN_DIRNAME, LOGS_DIRNAME);
     if (!verifyDirExists(logs_dir))
     {
         printf("No se encontro el directorio de bitacoras.\n");
@@ -338,7 +338,7 @@ bool verifyStructure(char *root_dir, char *logs_dir, char *config_filename)
     };
 
     // Verifica archivo de configuracion
-    snprintf(config_filename, sizeof(logs_dir), "%s/%s", MAIN_DIRNAME, CONFIG_FILENAME);
+    snprintf(config_filename, INPUT_LENGTH, "%s/%s", MAIN_DIRNAME, CONFIG_FILENAME);
     if (!verifyFileExists(config_filename))
     {
         printf("No se encontro el archivo de configuracion.\n");
@@ -452,7 +452,7 @@ int main(int argc, char *argv[])
 
             if (getSize(kwords_vector) == 0)
             {
-                if (loadKeywords(config_filename, kwords_vector))
+                if (!loadKeywords(config_filename, kwords_vector))
                 {
                     printf("No hay palabras clave, ingrese al menu de opciones para agregar alguna.\n");
                     break;

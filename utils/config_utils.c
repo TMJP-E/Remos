@@ -142,7 +142,8 @@ char *readValueFromKey(char *config_path, const char *key)
         {
             // Si lo encontramos, obtenemos el valor usando tokens y se retorna.
             strtok(current_line, key_delimiter);
-            token = strtok(current_line, key_delimiter);
+            token = strtok(NULL, key_delimiter);
+            token[strcspn(token, "\n")] = 0;
             fclose(config_file);
             return strdup(token);
         }
