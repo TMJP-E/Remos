@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <time.h>
+#include <ctype.h>
 
 #include "log_utils.h"
 #include "config_utils.h"
@@ -19,6 +20,39 @@ void initLogFile(const char *log_name) {
     }
 }
 
+//Convierte una cadena a minusculas
+void toLowerCase(char *str) {
+    for (size_t i = 0; str[i]; i++) {
+        str[i] = tolower((unsigned char)str[i]);
+    }
+}
+//Elimina secuencias ANSI de una linea, dejando solo el texto limpio, para evitar falsos positivos en la deteccion de palabras clave.
+void cleanLogLine(const char *input, char *output){
+    int i=0, j=0;
+    int in_ansi = 0, fin_ansi = 0;
+    while (input[i] != '\0') {
+        if (input[i] == '\033' && input[i+1] == '[') {
+
+            in_ansi = 1;
+            i++;
+        } 
+        else if(in_ansi){
+            fin_ansi = 1;
+        }
+        if (in_ansi && fin_ansi) {
+            if (input[i] == 'm') {
+                in_ansi = 0; // Fin de la secuencia ANSI
+            }
+            fin_ansi = 0; // Reiniciar fin_ansi para la próxima secuencia
+        }
+        if (!in_ansi){
+            output[j++] = input[i];
+        }
+        i++;
+    }
+    output[j] = '\0';
+}
+
 /**
  * @brief Busca si alguna de las palabras clave existe dentro de una linea de texto.
  *
@@ -32,9 +66,20 @@ void initLogFile(const char *log_name) {
  * * @return `true` si encontro al menos una coincidencia, `false` si la linea esta limpia.
  */
 bool checkKeywords(const char *line, StringVector *keywords, int *counters) {
+
+    char lower_line[CONFIG_LENGTH];
+    strncpy(lower_line, line, sizeof(lower_line) - 1);
+    lower_line[sizeof(lower_line) - 1] = '\0';
+    toLowerCase(lower_line);
+
     for (size_t i = 0; i < getSize(keywords); i++) {
         char *word = getElement(keywords, i);
-        if (strstr(line, word) != NULL) {
+        char lower_word[CONFIG_LENGTH];
+        strncpy(lower_word, word, sizeof(lower_word) - 1);
+        lower_word[sizeof(lower_word) - 1] = '\0';
+        toLowerCase(lower_word);
+        
+        if (strstr(lower_line, lower_word) != NULL) {
             counters[i]++;
             free(word);
             return true;
@@ -102,16 +147,17 @@ void startLog(char *command, StringVector *keywords, int *counters, char *log_na
     }
 
     char linea[CONFIG_LENGTH];
+    char clean_line[CONFIG_LENGTH*2];
 
     while (fgets(linea, sizeof(linea), proceso) != NULL) {
         printf("%s", linea);
-
+        cleanLogLine(linea, clean_line);
         if (checkKeywords(linea, keywords, counters)) {
             
-            saveToLog(log_name, linea);
+            saveToLog(log_name, clean_line);
 
             if (url_enabled && strlen(url) > 0) {
-                sendDiscordAlert(url, linea);
+                sendDiscordAlert(url, clean_line);
             }
         }
     }
